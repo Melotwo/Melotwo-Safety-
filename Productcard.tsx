@@ -1,10 +1,10 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import type { Product, Review } from '../types';
+import type { Product, Review } from '../types.ts';
 import { CheckCircle, ShoppingCart, Star, Minus, Plus, Printer, Share2, Copy, Check, Twitter, Facebook, Linkedin, Scale, MessageSquare, Eye } from 'lucide-react';
-import CustomizationModal from './CustomizationModal';
-import ProductReviews from './ProductReviews';
-import StarRating from './StarRating';
+import CustomizationModal from './CustomizationModal.tsx';
+import ProductReviews from './ProductReviews.tsx';
+import StarRating from './StarRating.tsx';
 
 interface ProductCardProps {
   product: Product;
