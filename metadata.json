@@ -1,6 +1,7 @@
+
 {
   "name": "Melotwo PPE Procurement Hub",
-  "description": "A modern, professional web application for PPE buyers and mine & safety procurement professionals, rebranded as Melotwo. Features an AI assistant powered by Gemini to help find SABS certified products and answer safety questions.",
+  "description": "A modern, professional web application for PPE buyers and mine & safety procurement professionals. Features an AI assistant powered by Gemini to help find SABS certified products and answer safety questions.",
   "requestFramePermissions": [
     "geolocation"
   ]
