@@ -1,1 +1,14 @@
-// This file is intentionally blank. Its contents were moved to App.tsx to resolve a runtime issue.
+export interface PpeProduct {
+  id: string;
+  name: string;
+  keywords: string[];
+  description: string;
+  image: string;
+}
+
+export interface SavedChecklist {
+  id: number;
+  title: string;
+  content: string;
+  savedAt: string;
+}
