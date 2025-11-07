@@ -1,6 +1,6 @@
 
 import React, { useEffect } from 'react';
-import type { Toast as ToastType } from '../types';
+import type { Toast as ToastType } from '../types.ts';
 import { X, AlertTriangle, CheckCircle, Info, XCircle } from 'lucide-react';
 
 interface ToastProps {
@@ -84,3 +84,5 @@ const Toast: React.FC<ToastProps> = ({ toast, onClose }) => {
     </div>
   );
 };
+
+export default Toast;
