@@ -77,6 +77,8 @@ const getAiClient = () => {
   try {
     // This check is crucial for browser environments where `process` is not defined.
     if (typeof process === 'undefined' || !process.env || !process.env.API_KEY) {
+      // In a production environment, you might want to disable AI features gracefully.
+      // For this app, we throw an error to make the configuration issue obvious during development.
       throw new Error("API Key environment variable not found at runtime.");
     }
     return new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -276,7 +278,7 @@ const PRODUCTS: Product[] = [
     sabsCertified: true,
     sabsStandard: 'SABS 1397',
     description: 'A durable and comfortable hard hat with a high-density polyethylene shell. Meets SABS 1397 standards.',
-    imageUrl: 'https://images.pexels.com/photos/5859341/pexels-photo-5859341.jpeg?auto=compress&cs=tinysrgb&w=600',
+    imageUrl: 'https://images.unsplash.com/photo-1581092570089-c45a27a5a87e?q=80&w=800&auto=format&fit=crop',
     affiliateUrl: 'https://mineafrica.co.za/',
     price: 350.00,
     isPrintable: true,
@@ -304,7 +306,7 @@ const PRODUCTS: Product[] = [
     sabsCertified: true,
     sabsStandard: 'SABS EN388',
     description: 'Reinforced leather gloves for heavy-duty tasks. SABS certified for abrasion resistance.',
-    imageUrl: 'https://images.pexels.com/photos/8346533/pexels-photo-8346533.jpeg?auto=compress&cs=tinysrgb&w=600',
+    imageUrl: 'https://images.unsplash.com/photo-1620993369420-5312f38d39e3?q=80&w=800&auto=format&fit=crop',
     affiliateUrl: 'https://mineafrica.co.za/',
     price: 120.50,
     reviews: [],
@@ -316,7 +318,7 @@ const PRODUCTS: Product[] = [
     sabsCertified: true,
     sabsStandard: 'SABS 20345',
     description: 'Anti-slip, oil-resistant sole with steel toe cap protection. SABS 20345 compliant.',
-    imageUrl: 'https://images.pexels.com/photos/9891899/pexels-photo-9891899.jpeg?auto=compress&cs=tinysrgb&w=600',
+    imageUrl: 'https://images.unsplash.com/photo-1628755712093-02051a81213f?q=80&w=800&auto=format&fit=crop',
     affiliateUrl: 'https://mineafrica.co.za/',
     price: 899.99,
     reviews: [
@@ -336,7 +338,7 @@ const PRODUCTS: Product[] = [
     sabsCertified: true,
     sabsStandard: 'SABS 50361',
     description: '5-point adjustment harness for maximum safety during work at height. Complies with SABS 50361.',
-    imageUrl: 'https://images.pexels.com/photos/6624948/pexels-photo-6624948.jpeg?auto=compress&cs=tinysrgb&w=600',
+    imageUrl: 'https://images.unsplash.com/photo-1552121332-9c3a3782b78a?q=80&w=800&auto=format&fit=crop',
     affiliateUrl: 'https://mineafrica.co.za/',
     price: 1500.00,
     reviews: [],
@@ -348,7 +350,7 @@ const PRODUCTS: Product[] = [
     sabsCertified: true,
     sabsStandard: 'SABS 166',
     description: 'Ventilated, anti-fog, and scratch-resistant goggles for full eye protection. SABS 166 certified.',
-    imageUrl: 'https://images.pexels.com/photos/8439169/pexels-photo-8439169.jpeg?auto=compress&cs=tinysrgb&w=600',
+    imageUrl: 'https://images.unsplash.com/photo-1608323223631-a8315a6f4438?q=80&w=800&auto=format&fit=crop',
     affiliateUrl: 'https://mineafrica.co.za/',
     price: 250.00,
     reviews: [],
@@ -359,7 +361,7 @@ const PRODUCTS: Product[] = [
     category: 'Hearing Protection',
     sabsCertified: false,
     description: 'Comfortable earmuffs with a high Noise Reduction Rating (NRR) of 31dB.',
-    imageUrl: 'https://images.pexels.com/photos/16140685/pexels-photo-16140685/free-photo-of-man-at-work-in-ear-defenders.jpeg?auto=compress&cs=tinysrgb&w=600',
+    imageUrl: 'https://images.unsplash.com/photo-1618342468252-87a3d31006d8?q=80&w=800&auto=format&fit=crop',
     affiliateUrl: 'https://mineafrica.co.za/',
     price: 450.75,
     reviews: [],
@@ -371,7 +373,7 @@ const PRODUCTS: Product[] = [
     sabsCertified: true,
     sabsStandard: 'SABS 1397',
     description: 'Specialized helmet for mining with high visibility reflective strips and lamp bracket. SABS 1397.',
-    imageUrl: 'https://images.pexels.com/photos/5859341/pexels-photo-5859341.jpeg?auto=compress&cs=tinysrgb&w=600',
+    imageUrl: 'https://images.unsplash.com/photo-1620635489839-93f8736a4f49?q=80&w=800&auto=format&fit=crop',
     affiliateUrl: 'https://mineafrica.co.za/',
     price: 420.00,
     reviews: [],
@@ -383,7 +385,7 @@ const PRODUCTS: Product[] = [
     sabsCertified: true,
     sabsStandard: 'SABS EN388',
     description: 'Level 5 cut resistance for handling sharp materials. Meets SABS EN388 standards.',
-    imageUrl: 'https://images.pexels.com/photos/7137533/pexels-photo-7137533.jpeg?auto=compress&cs=tinysrgb&w=600',
+    imageUrl: 'https://images.unsplash.com/photo-1590779031853-3375865a70eb?q=80&w=800&auto=format&fit=crop',
     affiliateUrl: 'https://mineafrica.co.za/',
     price: 180.00,
     reviews: [],
@@ -395,7 +397,7 @@ const PRODUCTS: Product[] = [
     sabsCertified: true,
     sabsStandard: 'SANS 434',
     description: 'Bright, reflective safety vest for maximum visibility. Available for custom logo printing.',
-    imageUrl: 'https://images.pexels.com/photos/8550974/pexels-photo-8550974.jpeg?auto=compress&cs=tinysrgb&w=600',
+    imageUrl: 'https://images.unsplash.com/photo-1571434221972-383a1a586a16?q=80&w=800&auto=format&fit=crop',
     affiliateUrl: 'https://mineafrica.co.za/',
     price: 280.00,
     isPrintable: true,
@@ -407,7 +409,7 @@ const PRODUCTS: Product[] = [
     category: 'Workwear',
     sabsCertified: false,
     description: 'Comfortable and durable 100% cotton work shirt. Perfect for adding your company logo.',
-    imageUrl: 'https://images.pexels.com/photos/6769741/pexels-photo-6769741.jpeg?auto=compress&cs=tinysrgb&w=600',
+    imageUrl: 'https://images.unsplash.com/photo-1598032895397-b9472444bf20?q=80&w=800&auto=format&fit=crop',
     affiliateUrl: 'https://mineafrica.co.za/',
     price: 320.50,
     isPrintable: true,
@@ -1159,7 +1161,7 @@ const Navbar: React.FC<{ onThemeToggle: () => void; isDarkMode: boolean }> = ({ 
 
 // --- From components/EmailCapture.tsx ---
 const EmailCapture: React.FC = () => (
-    <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg my-12">
+    <div className="bg-slate-100 dark:bg-slate-800/50 rounded-lg my-16">
         <div className="max-w-4xl mx-auto text-center py-12 px-4 sm:px-6 lg:py-16 lg:px-8">
             <h2 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100 sm:text-4xl">
                 <span className="block">Stay Ahead in Safety.</span>
@@ -1176,14 +1178,14 @@ const EmailCapture: React.FC = () => (
                         type="email"
                         autoComplete="email"
                         required
-                        className="block w-full px-5 py-3 border border-slate-300 dark:border-slate-600 rounded-md text-base text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-amber-100 dark:focus:ring-offset-slate-900 focus:ring-amber-500 bg-white dark:bg-slate-800"
+                        className="block w-full px-5 py-3 border border-slate-300 dark:border-slate-600 rounded-md text-base text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-100 dark:focus:ring-offset-slate-900 focus:ring-amber-500 bg-white dark:bg-slate-800"
                         placeholder="Enter your email"
                     />
                 </div>
                 <div className="mt-3 sm:mt-0 sm:ml-3">
                     <button
                         type="submit"
-                        className="block w-full py-3 px-5 rounded-md shadow bg-amber-500 text-white font-medium hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-amber-100 dark:focus:ring-offset-slate-900 focus:ring-amber-500"
+                        className="block w-full py-3 px-5 rounded-md shadow bg-amber-500 text-white font-medium hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-100 dark:focus:ring-offset-slate-900 focus:ring-amber-500"
                     >
                         Subscribe
                     </button>
@@ -1364,32 +1366,31 @@ const AiChatBot: React.FC = () => {
 
 // --- Main App Component ---
 const App: React.FC = () => {
-    const [isDarkMode, setIsDarkMode] = useState(() => {
-        // Set initial theme based on user's system preference
-        if (typeof window !== 'undefined' && window.matchMedia) {
-            return window.matchMedia('(prefers-color-scheme: dark)').matches;
-        }
-        return false;
-    });
+    const [isDarkMode, setIsDarkMode] = useState(false);
 
     const [products, setProducts] = useState<Product[]>(() =>
-        PRODUCTS.map(p => ({ ...p, isLoading: true }))
+        PRODUCTS.map(p => ({ ...p, isLoading: false })) // Start with isLoading: false as we have stable images
     );
 
-    // Effect to apply the dark class to the HTML element
+    // Effect to set initial theme and apply the dark class to the HTML element
+    useEffect(() => {
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        setIsDarkMode(prefersDark);
+    }, []);
+
     useEffect(() => {
         const root = window.document.documentElement;
-        if (isDarkMode) {
-            root.classList.add('dark');
-        } else {
-            root.classList.remove('dark');
-        }
+        root.classList.toggle('dark', isDarkMode);
     }, [isDarkMode]);
 
     const toggleTheme = () => {
         setIsDarkMode(prev => !prev);
     };
 
+  // The dynamic fetching is a good enhancement, but we can disable it for now
+  // to ensure stability, since the main issue was broken images.
+  // The stable URLs in the PRODUCTS constant provide a solid baseline.
+  /*
   useEffect(() => {
     // Dynamically fetch product details on initial load
     const fetchAllDetails = async () => {
@@ -1409,6 +1410,7 @@ const App: React.FC = () => {
 
     fetchAllDetails();
   }, []);
+  */
 
   const handleAddReview = (productId: number, reviewData: Omit<Review, 'id' | 'date'>) => {
     setProducts(currentProducts =>
@@ -1434,13 +1436,13 @@ const App: React.FC = () => {
     <div className={`min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-200 transition-colors duration-300`}>
       <Navbar onThemeToggle={toggleTheme} isDarkMode={isDarkMode} />
       
-      <header className="bg-amber-50 dark:bg-amber-900/20 py-16">
+      <header className="bg-white dark:bg-slate-900 py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-4xl font-extrabold text-slate-900 dark:text-slate-100 sm:text-5xl md:text-6xl">
-            Your Premier PPE Partner
+            Your Premier Partner for <span className="text-amber-500">Certified Safety Equipment</span>
           </h1>
           <p className="mt-4 max-w-2xl mx-auto text-lg text-slate-600 dark:text-slate-400">
-            SABS-certified safety equipment for the mining and industrial sectors. Uncompromising quality, unbeatable service.
+           Equip your workforce with SABS-approved Personal Protective Equipment (PPE). Fast procurement, expert advice, and uncompromising safety standards for the mining and industrial sectors.
           </p>
         </div>
       </header>
