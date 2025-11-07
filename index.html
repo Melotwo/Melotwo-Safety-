@@ -6,82 +6,19 @@
     <meta name="description" content="A powerful digital tool for safety professionals. Input a task, environment, and equipment to generate a comprehensive, AI-powered safety checklist instantly." />
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f59e0b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z'%3E%3C/path%3E%3C/svg%3E" />
     <title>AI Safety Checklist Generator</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
     <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
-    <style>
-      :root { 
-        font-family: 'Inter', sans-serif; 
-        --amber-500: #f59e0b;
-        --slate-950: #020617;
-      }
-      @supports (font-variation-settings: normal) {
-        :root { font-family: 'Inter var', sans-serif; }
-      }
-      
-      body {
-        background-color: #f8fafc;
-        background-image: radial-gradient(rgba(0, 0, 0, 0.04) 1px, transparent 0);
-        background-size: 30px 30px;
-        background-position: -15px -15px;
-      }
-
-      .dark body {
-        background-color: var(--slate-950);
-        background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 0);
-      }
-
-      /* Custom scrollbar */
-      ::-webkit-scrollbar {
-        width: 8px;
-      }
-      ::-webkit-scrollbar-track {
-        background: transparent;
-      }
-      ::-webkit-scrollbar-thumb {
-        background-color: rgba(156, 163, 175, 0.5);
-        border-radius: 4px;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background-color: rgba(156, 163, 175, 0.7);
-      }
-      .dark ::-webkit-scrollbar-thumb {
-        background-color: rgba(100, 116, 139, 0.5);
-      }
-      .dark ::-webkit-scrollbar-thumb:hover {
-        background-color: rgba(100, 116, 139, 0.7);
-      }
-
-      /* Global focus styles for accessibility */
-      *:focus-visible {
-        outline: 2px solid var(--amber-500) !important;
-        outline-offset: 2px !important;
-        border-radius: 4px;
-      }
-      
-      @media print {
-        body {
-          background-image: none !important;
-        }
-        .no-print {
-          display: none !important;
-        }
-        .print-area {
-          box-shadow: none !important;
-          border: none !important;
-        }
-      }
-    </style>
   <script type="importmap">
 {
   "imports": {
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.29.0",
     "react": "https://aistudiocdn.com/react@^19.2.0",
     "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.29.0",
-    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.552.0",
-    "jspdf": "https://aistudiocdn.com/jspdf@^2.5.1",
-    "html2canvas": "https://aistudiocdn.com/html2canvas@^1.4.1"
+    "html2canvas": "https://aistudiocdn.com/html2canvas@^1.4.1",
+    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.0",
+    "jspdf": "https://aistudiocdn.com/jspdf@^3.0.3",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.553.0",
+    "vite": "https://aistudiocdn.com/vite@^7.2.2"
   }
 }
 </script>
