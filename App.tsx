@@ -276,7 +276,7 @@ const PRODUCTS: Product[] = [
     sabsCertified: true,
     sabsStandard: 'SABS 1397',
     description: 'A durable and comfortable hard hat with a high-density polyethylene shell. Meets SABS 1397 standards.',
-    imageUrl: 'https://mineafrica.co.za/image/cache/catalog/Products/V-GARD-500x500.png',
+    imageUrl: 'https://images.pexels.com/photos/5859341/pexels-photo-5859341.jpeg?auto=compress&cs=tinysrgb&w=600',
     affiliateUrl: 'https://mineafrica.co.za/',
     price: 350.00,
     isPrintable: true,
@@ -304,7 +304,7 @@ const PRODUCTS: Product[] = [
     sabsCertified: true,
     sabsStandard: 'SABS EN388',
     description: 'Reinforced leather gloves for heavy-duty tasks. SABS certified for abrasion resistance.',
-    imageUrl: 'https://mineafrica.co.za/image/cache/catalog/Products/DROMEX-PIGSKIN-LEATHER-GLOVES-500x500.jpg',
+    imageUrl: 'https://images.pexels.com/photos/8346533/pexels-photo-8346533.jpeg?auto=compress&cs=tinysrgb&w=600',
     affiliateUrl: 'https://mineafrica.co.za/',
     price: 120.50,
     reviews: [],
@@ -316,7 +316,7 @@ const PRODUCTS: Product[] = [
     sabsCertified: true,
     sabsStandard: 'SABS 20345',
     description: 'Anti-slip, oil-resistant sole with steel toe cap protection. SABS 20345 compliant.',
-    imageUrl: 'https://mineafrica.co.za/image/cache/catalog/Products/BRONCO-BOOTS-500x500.jpg',
+    imageUrl: 'https://images.pexels.com/photos/9891899/pexels-photo-9891899.jpeg?auto=compress&cs=tinysrgb&w=600',
     affiliateUrl: 'https://mineafrica.co.za/',
     price: 899.99,
     reviews: [
@@ -336,7 +336,7 @@ const PRODUCTS: Product[] = [
     sabsCertified: true,
     sabsStandard: 'SABS 50361',
     description: '5-point adjustment harness for maximum safety during work at height. Complies with SABS 50361.',
-    imageUrl: 'https://mineafrica.co.za/image/cache/catalog/Products/DROMEX-DH101-HARNESS-500x500.jpg',
+    imageUrl: 'https://images.pexels.com/photos/6624948/pexels-photo-6624948.jpeg?auto=compress&cs=tinysrgb&w=600',
     affiliateUrl: 'https://mineafrica.co.za/',
     price: 1500.00,
     reviews: [],
@@ -348,7 +348,7 @@ const PRODUCTS: Product[] = [
     sabsCertified: true,
     sabsStandard: 'SABS 166',
     description: 'Ventilated, anti-fog, and scratch-resistant goggles for full eye protection. SABS 166 certified.',
-    imageUrl: 'https://mineafrica.co.za/image/cache/catalog/Products/PYRAMEX-V2G-PLUS-500x500.png',
+    imageUrl: 'https://images.pexels.com/photos/8439169/pexels-photo-8439169.jpeg?auto=compress&cs=tinysrgb&w=600',
     affiliateUrl: 'https://mineafrica.co.za/',
     price: 250.00,
     reviews: [],
@@ -359,7 +359,7 @@ const PRODUCTS: Product[] = [
     category: 'Hearing Protection',
     sabsCertified: false,
     description: 'Comfortable earmuffs with a high Noise Reduction Rating (NRR) of 31dB.',
-    imageUrl: 'https://mineafrica.co.za/image/cache/catalog/Products/HOWARD-LEIGHT-THUNDER-T1-EARMUFFS-500x500.jpg',
+    imageUrl: 'https://images.pexels.com/photos/16140685/pexels-photo-16140685/free-photo-of-man-at-work-in-ear-defenders.jpeg?auto=compress&cs=tinysrgb&w=600',
     affiliateUrl: 'https://mineafrica.co.za/',
     price: 450.75,
     reviews: [],
@@ -371,7 +371,7 @@ const PRODUCTS: Product[] = [
     sabsCertified: true,
     sabsStandard: 'SABS 1397',
     description: 'Specialized helmet for mining with high visibility reflective strips and lamp bracket. SABS 1397.',
-    imageUrl: 'https://mineafrica.co.za/image/cache/catalog/Products/V-GARD-500x500.png',
+    imageUrl: 'https://images.pexels.com/photos/5859341/pexels-photo-5859341.jpeg?auto=compress&cs=tinysrgb&w=600',
     affiliateUrl: 'https://mineafrica.co.za/',
     price: 420.00,
     reviews: [],
@@ -383,7 +383,7 @@ const PRODUCTS: Product[] = [
     sabsCertified: true,
     sabsStandard: 'SABS EN388',
     description: 'Level 5 cut resistance for handling sharp materials. Meets SABS EN388 standards.',
-    imageUrl: 'https://mineafrica.co.za/image/cache/catalog/Products/DROMEX-CUT5-GLOVES-500x500.jpg',
+    imageUrl: 'https://images.pexels.com/photos/7137533/pexels-photo-7137533.jpeg?auto=compress&cs=tinysrgb&w=600',
     affiliateUrl: 'https://mineafrica.co.za/',
     price: 180.00,
     reviews: [],
@@ -395,7 +395,7 @@ const PRODUCTS: Product[] = [
     sabsCertified: true,
     sabsStandard: 'SANS 434',
     description: 'Bright, reflective safety vest for maximum visibility. Available for custom logo printing.',
-    imageUrl: 'https://mineafrica.co.za/image/cache/catalog/Products/HIGH-VISIBILITY-VEST-500x500.jpg',
+    imageUrl: 'https://images.pexels.com/photos/8550974/pexels-photo-8550974.jpeg?auto=compress&cs=tinysrgb&w=600',
     affiliateUrl: 'https://mineafrica.co.za/',
     price: 280.00,
     isPrintable: true,
@@ -407,7 +407,7 @@ const PRODUCTS: Product[] = [
     category: 'Workwear',
     sabsCertified: false,
     description: 'Comfortable and durable 100% cotton work shirt. Perfect for adding your company logo.',
-    imageUrl: 'https://mineafrica.co.za/image/cache/catalog/workwear/javlin-lounge-shirt-500x500.jpg',
+    imageUrl: 'https://images.pexels.com/photos/6769741/pexels-photo-6769741.jpeg?auto=compress&cs=tinysrgb&w=600',
     affiliateUrl: 'https://mineafrica.co.za/',
     price: 320.50,
     isPrintable: true,
@@ -1157,6 +1157,42 @@ const Navbar: React.FC<{ onThemeToggle: () => void; isDarkMode: boolean }> = ({ 
   </nav>
 );
 
+// --- From components/EmailCapture.tsx ---
+const EmailCapture: React.FC = () => (
+    <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg my-12">
+        <div className="max-w-4xl mx-auto text-center py-12 px-4 sm:px-6 lg:py-16 lg:px-8">
+            <h2 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100 sm:text-4xl">
+                <span className="block">Stay Ahead in Safety.</span>
+            </h2>
+            <p className="mt-4 text-lg leading-6 text-slate-600 dark:text-slate-400">
+                Get the latest on SABS standards, new product arrivals, and exclusive offers delivered right to your inbox.
+            </p>
+            <form className="mt-8 sm:flex sm:justify-center">
+                <div className="min-w-0 flex-1">
+                    <label htmlFor="email-address" className="sr-only">Email address</label>
+                    <input
+                        id="email-address"
+                        name="email-address"
+                        type="email"
+                        autoComplete="email"
+                        required
+                        className="block w-full px-5 py-3 border border-slate-300 dark:border-slate-600 rounded-md text-base text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-amber-100 dark:focus:ring-offset-slate-900 focus:ring-amber-500 bg-white dark:bg-slate-800"
+                        placeholder="Enter your email"
+                    />
+                </div>
+                <div className="mt-3 sm:mt-0 sm:ml-3">
+                    <button
+                        type="submit"
+                        className="block w-full py-3 px-5 rounded-md shadow bg-amber-500 text-white font-medium hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-amber-100 dark:focus:ring-offset-slate-900 focus:ring-amber-500"
+                    >
+                        Subscribe
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+);
+
 // --- From components/Footer.tsx ---
 const Footer: React.FC = () => (
   <footer className="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800">
@@ -1328,15 +1364,31 @@ const AiChatBot: React.FC = () => {
 
 // --- Main App Component ---
 const App: React.FC = () => {
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  const [products, setProducts] = useState<Product[]>(() => 
-      PRODUCTS.map(p => ({ ...p, isLoading: true }))
-  );
-  
-  const toggleTheme = () => {
-    setIsDarkMode(!isDarkMode);
-    document.documentElement.classList.toggle('dark', !isDarkMode);
-  };
+    const [isDarkMode, setIsDarkMode] = useState(() => {
+        // Set initial theme based on user's system preference
+        if (typeof window !== 'undefined' && window.matchMedia) {
+            return window.matchMedia('(prefers-color-scheme: dark)').matches;
+        }
+        return false;
+    });
+
+    const [products, setProducts] = useState<Product[]>(() =>
+        PRODUCTS.map(p => ({ ...p, isLoading: true }))
+    );
+
+    // Effect to apply the dark class to the HTML element
+    useEffect(() => {
+        const root = window.document.documentElement;
+        if (isDarkMode) {
+            root.classList.add('dark');
+        } else {
+            root.classList.remove('dark');
+        }
+    }, [isDarkMode]);
+
+    const toggleTheme = () => {
+        setIsDarkMode(prev => !prev);
+    };
 
   useEffect(() => {
     // Dynamically fetch product details on initial load
@@ -1408,6 +1460,7 @@ const App: React.FC = () => {
                 />
             ))}
         </div>
+        <EmailCapture />
       </main>
       
       <AiChatBot />
