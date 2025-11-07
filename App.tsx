@@ -4,16 +4,42 @@ import Footer from './components/Footer.tsx';
 import ProductCard from './components/ProductCard.tsx';
 import AiChatBot from './components/AiChatBot.tsx';
 import ProductFilterSidebar from './components/ProductFilterSidebar.tsx';
-import ProductSortDropdown from './components/ProductSortDropdown.tsx';
 import EmailCapture from './components/EmailCapture.tsx';
 import ComparisonBar from './components/ComparisonBar.tsx';
 import ComparisonModal from './components/ComparisonModal.tsx';
 import Toast from './components/Toast.tsx';
 import ProductDetailModal from './components/ProductDetailModal.tsx';
 import { PRODUCTS, PRODUCT_CATEGORIES } from './constants.ts';
-import { SearchX } from 'lucide-react';
+import { SearchX, ArrowUpDown } from 'lucide-react';
 import ProductSearchBar from './components/ProductSearchBar.tsx';
 import type { Product, Review, Toast as ToastType } from './types.ts';
+
+// Moved component definition here to resolve build issue
+const ProductSortDropdown: React.FC<{
+  sortOption: string;
+  onSortChange: (option: string) => void;
+}> = ({ sortOption, onSortChange }) => {
+  return (
+    <div className="flex items-center space-x-2">
+       <label htmlFor="sort-options" className="text-sm font-medium text-slate-600 dark:text-slate-400 flex items-center">
+        <ArrowUpDown className="w-4 h-4 mr-1.5" />
+        Sort by:
+      </label>
+      <select
+        id="sort-options"
+        value={sortOption}
+        onChange={(e) => onSortChange(e.target.value)}
+        className="block w-48 pl-3 pr-10 py-2 text-base border-slate-300 dark:border-slate-600 focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm rounded-md bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-200"
+      >
+        <option value="relevance">Relevance</option>
+        <option value="name-asc">Name: A-Z</option>
+        <option value="name-desc">Name: Z-A</option>
+        <option value="price-asc">Price: Low to High</option>
+        <option value="price-desc">Price: High to Low</option>
+      </select>
+    </div>
+  );
+};
 
 const MAX_COMPARE_ITEMS = 4;
 
