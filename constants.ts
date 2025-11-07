@@ -1,5 +1,6 @@
+
 import type { Product, ProductCategory } from './types';
-import { HardHat, Hand, Footprints, Shield, Eye, Ear } from 'lucide-react';
+import { HardHat, Hand, Footprints, Shield, Eye, Ear, Shirt } from 'lucide-react';
 
 export const PRODUCT_CATEGORIES: ProductCategory[] = [
   { name: 'Head Protection', description: 'Helmets and hard hats for construction and mining.', icon: HardHat },
@@ -8,9 +9,8 @@ export const PRODUCT_CATEGORIES: ProductCategory[] = [
   { name: 'Fall Protection', description: 'Harnesses, lanyards, and fall arrest systems.', icon: Shield },
   { name: 'Eye Protection', description: 'Goggles and safety glasses for all environments.', icon: Eye },
   { name: 'Hearing Protection', description: 'Earmuffs and earplugs to prevent hearing loss.', icon: Ear },
+  { name: 'Workwear', description: 'Durable and customizable clothing for the workplace.', icon: Shirt },
 ];
-
-const AFFILIATE_LINK = 'https://mineafrica.co.za/index.php?route=account/trackin';
 
 export const PRODUCTS: Product[] = [
   {
@@ -20,8 +20,26 @@ export const PRODUCTS: Product[] = [
     sabsCertified: true,
     sabsStandard: 'SABS 1397',
     description: 'A durable and comfortable hard hat with a high-density polyethylene shell. Meets SABS 1397 standards.',
-    imageUrl: 'https://picsum.photos/seed/melotwo-hardhat/400/300',
-    affiliateUrl: AFFILIATE_LINK,
+    imageUrl: 'https://mineafrica.co.za/image/cache/catalog/Products/V-GARD-500x500.png',
+    affiliateUrl: 'https://mineafrica.co.za/',
+    price: 350.00,
+    isPrintable: true,
+    reviews: [
+      {
+        id: 'review-1-1',
+        username: 'Safety Steve',
+        rating: 5,
+        comment: 'Excellent hard hat. Comfortable for all-day wear and feels very sturdy. The SABS certification gives me peace of mind.',
+        date: '2023-10-26T10:00:00Z',
+      },
+      {
+        id: 'review-1-2',
+        username: 'Procurement Pro',
+        rating: 4,
+        comment: 'Good value for a certified helmet. The team likes them. Docking one star because the color options were limited.',
+        date: '2023-09-15T14:30:00Z',
+      },
+    ],
   },
   {
     id: 2,
@@ -30,8 +48,9 @@ export const PRODUCTS: Product[] = [
     sabsCertified: true,
     sabsStandard: 'SABS EN388',
     description: 'Reinforced leather gloves for heavy-duty tasks. SABS certified for abrasion resistance.',
-    imageUrl: 'https://picsum.photos/seed/melotwo-gloves/400/300',
-    affiliateUrl: AFFILIATE_LINK,
+    imageUrl: 'https://mineafrica.co.za/image/cache/catalog/Products/DROMEX-PIGSKIN-LEATHER-GLOVES-500x500.jpg',
+    affiliateUrl: 'https://mineafrica.co.za/',
+    price: 120.50,
   },
   {
     id: 3,
@@ -40,8 +59,18 @@ export const PRODUCTS: Product[] = [
     sabsCertified: true,
     sabsStandard: 'SABS 20345',
     description: 'Anti-slip, oil-resistant sole with steel toe cap protection. SABS 20345 compliant.',
-    imageUrl: 'https://picsum.photos/seed/melotwo-boots/400/300',
-    affiliateUrl: AFFILIATE_LINK,
+    imageUrl: 'https://mineafrica.co.za/image/cache/catalog/Products/BRONCO-BOOTS-500x500.jpg',
+    affiliateUrl: 'https://mineafrica.co.za/',
+    price: 899.99,
+    reviews: [
+       {
+        id: 'review-3-1',
+        username: 'Mark C.',
+        rating: 5,
+        comment: 'Best boots I\'ve owned. They survived a full year on the site with no issues. Waterproof and comfortable.',
+        date: '2023-11-01T08:00:00Z',
+      },
+    ]
   },
   {
     id: 4,
@@ -50,8 +79,9 @@ export const PRODUCTS: Product[] = [
     sabsCertified: true,
     sabsStandard: 'SABS 50361',
     description: '5-point adjustment harness for maximum safety during work at height. Complies with SABS 50361.',
-    imageUrl: 'https://picsum.photos/seed/melotwo-harness/400/300',
-    affiliateUrl: AFFILIATE_LINK,
+    imageUrl: 'https://mineafrica.co.za/image/cache/catalog/Products/DROMEX-DH101-HARNESS-500x500.jpg',
+    affiliateUrl: 'https://mineafrica.co.za/',
+    price: 1500.00,
   },
    {
     id: 5,
@@ -60,8 +90,9 @@ export const PRODUCTS: Product[] = [
     sabsCertified: true,
     sabsStandard: 'SABS 166',
     description: 'Ventilated, anti-fog, and scratch-resistant goggles for full eye protection. SABS 166 certified.',
-    imageUrl: 'https://picsum.photos/seed/melotwo-goggles/400/300',
-    affiliateUrl: AFFILIATE_LINK,
+    imageUrl: 'https://mineafrica.co.za/image/cache/catalog/Products/PYRAMEX-V2G-PLUS-500x500.png',
+    affiliateUrl: 'https://mineafrica.co.za/',
+    price: 250.00,
   },
   {
     id: 6,
@@ -69,8 +100,9 @@ export const PRODUCTS: Product[] = [
     category: 'Hearing Protection',
     sabsCertified: false,
     description: 'Comfortable earmuffs with a high Noise Reduction Rating (NRR) of 31dB.',
-    imageUrl: 'https://picsum.photos/seed/melotwo-earmuffs/400/300',
-    affiliateUrl: AFFILIATE_LINK,
+    imageUrl: 'https://mineafrica.co.za/image/cache/catalog/Products/HOWARD-LEIGHT-THUNDER-T1-EARMUFFS-500x500.jpg',
+    affiliateUrl: 'https://mineafrica.co.za/',
+    price: 450.75,
   },
   {
     id: 7,
@@ -79,8 +111,9 @@ export const PRODUCTS: Product[] = [
     sabsCertified: true,
     sabsStandard: 'SABS 1397',
     description: 'Specialized helmet for mining with high visibility reflective strips and lamp bracket. SABS 1397.',
-    imageUrl: 'https://picsum.photos/seed/melotwo-mininghelmet/400/300',
-    affiliateUrl: AFFILIATE_LINK,
+    imageUrl: 'https://mineafrica.co.za/image/cache/catalog/Products/V-GARD-500x500.png',
+    affiliateUrl: 'https://mineafrica.co.za/',
+    price: 420.00,
   },
   {
     id: 8,
@@ -89,7 +122,30 @@ export const PRODUCTS: Product[] = [
     sabsCertified: true,
     sabsStandard: 'SABS EN388',
     description: 'Level 5 cut resistance for handling sharp materials. Meets SABS EN388 standards.',
-    imageUrl: 'https://picsum.photos/seed/melotwo-cutgloves/400/300',
-    affiliateUrl: AFFILIATE_LINK,
+    imageUrl: 'https://mineafrica.co.za/image/cache/catalog/Products/DROMEX-CUT5-GLOVES-500x500.jpg',
+    affiliateUrl: 'https://mineafrica.co.za/',
+    price: 180.00,
+  },
+  {
+    id: 9,
+    name: 'High-Visibility Safety Vest',
+    category: 'Workwear',
+    sabsCertified: true,
+    sabsStandard: 'SANS 434',
+    description: 'Bright, reflective safety vest for maximum visibility. Available for custom logo printing.',
+    imageUrl: 'https://mineafrica.co.za/image/cache/catalog/Products/HIGH-VISIBILITY-VEST-500x500.jpg',
+    affiliateUrl: 'https://mineafrica.co.za/',
+    price: 280.00,
+    isPrintable: true,
+  },
+  {
+    id: 10,
+    name: 'Branded Cotton Work Shirt',
+    category: 'Workwear',
+    sabsCertified: false,
+    description: 'Comfortable and durable 100% cotton work shirt. Perfect for adding your company logo.',
+    imageUrl: 'https://mineafrica.co.za/image/cache/catalog/workwear/javlin-lounge-shirt-500x500.jpg',
+    affiliateUrl: 'https://mineafrica.co.za/',
+    price: 320.50,
+    isPrintable: true,
   }
-];
