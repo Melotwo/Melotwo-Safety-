@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
-import type { Product } from '../types';
+import type { Product } from '../types.ts';
 import { X, CheckCircle, Minus, Plus, ShoppingCart, Printer } from 'lucide-react';
-import StarRating from './StarRating';
-import CustomizationModal from './CustomizationModal';
+import StarRating from './StarRating.tsx';
+import CustomizationModal from './CustomizationModal.tsx';
 
 interface ProductDetailModalProps {
   product: Product | null;
@@ -187,3 +187,5 @@ const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product, onClos
     </>
   );
 };
+
+export default ProductDetailModal;
