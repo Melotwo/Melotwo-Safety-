@@ -71,9 +71,27 @@ interface ToastType {
 
 
 // ========= GEMINI SERVICE INLINED TO FIX BUILD ERROR =========
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+// Helper function to initialize AI and handle potential runtime errors.
+const getAiClient = () => {
+  try {
+    // This check is crucial for browser environments where `process` is not defined.
+    if (typeof process === 'undefined' || !process.env || !process.env.API_KEY) {
+      throw new Error("API Key environment variable not found at runtime.");
+    }
+    return new GoogleGenAI({ apiKey: process.env.API_KEY });
+  } catch (e) {
+    console.error("AI Initialization Error: ", e);
+    return null;
+  }
+};
 
 const getAiBotResponse = async (query: string, location: { latitude: number; longitude: number; } | null): Promise<{ text: string; sources: Source[] }> => {
+  const ai = getAiClient();
+  if (!ai) {
+    return { text: "I'm sorry, but the AI assistant is currently unavailable due to a configuration issue. Please try again later.", sources: [] };
+  }
+  
   const tools: any[] = [{ googleSearch: {} }, { googleMaps: {} }];
   const toolConfig: any = location ? {
       retrievalConfig: {
@@ -144,6 +162,12 @@ const generateEmailDraft = async (messages: ChatMessage[]): Promise<EmailContent
     Generate a subject line and a body for the email. The email should summarize the user's needs and request a formal quote or further information.
     Assume the email is sent from a generic procurement manager to Melotwo. Keep it professional and to the point.
     `;
+
+    const ai = getAiClient();
+    if (!ai) {
+      console.error("Could not generate email draft because AI client failed to initialize.");
+      return null;
+    }
 
     try {
         const responseSchema = {
