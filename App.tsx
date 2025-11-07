@@ -9,16 +9,66 @@ import {
   Tag, BookmarkCheck, UploadCloud, Trash2, AlertTriangle, Info, XCircle, UserCircle,
   Search
 } from 'lucide-react';
-
-// Type imports from various components
-import type { 
-  Product, Review, Toast as ToastType, ChatMessage, EmailContent, Source, 
-  ProductCategory, LucideIcon 
-} from './types.ts';
+import type { LucideIcon } from 'lucide-react';
   
 // FIX: The import from 'services/geminiService.ts' was removed as the file is empty.
 // The Gemini service functions have been inlined here to resolve the build error.
 import { GoogleGenAI, Type } from "@google/genai";
+
+
+// ========= TYPES INLINED TO FIX BUILD ERROR =========
+interface Review {
+  id: string;
+  username: string;
+  rating: number;
+  comment: string;
+  date: string;
+}
+
+interface Product {
+  id: number;
+  name: string;
+  category: string;
+  sabsCertified: boolean;
+  sabsStandard?: string;
+  description: string;
+  imageUrl: string;
+  affiliateUrl: string;
+  price?: number;
+  isPrintable?: boolean;
+  reviews?: Review[];
+}
+
+interface ProductCategory {
+  name: string;
+  description: string;
+  icon: LucideIcon;
+}
+
+interface Source {
+  title: string;
+  uri: string;
+}
+
+interface ChatMessage {
+  id: string;
+  role: 'user' | 'model';
+  text: string;
+  sources?: Source[];
+  rating?: 'up' | 'down' | null;
+}
+
+interface EmailContent {
+  subject: string;
+  body: string;
+}
+
+interface ToastType {
+  id: string;
+  message: string;
+  type: 'warning' | 'success' | 'info' | 'error';
+}
+
 
 // ========= GEMINI SERVICE INLINED TO FIX BUILD ERROR =========
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
