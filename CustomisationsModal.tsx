@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import type { Product } from '../types';
+import type { Product } from '../types.ts';
 import { X, UploadCloud, Trash2, ShoppingCart } from 'lucide-react';
 
 interface CustomizationModalProps {
