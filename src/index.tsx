@@ -1,7 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App.tsx';
-import './index.css';
+// FIX: Corrected path to App.tsx inside the src directory.
+import App from './src/App.tsx';
+import './src/index.css';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
