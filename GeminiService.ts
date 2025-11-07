@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, GenerateContentResponse, Type } from "@google/genai";
-import type { Source, ChatMessage, EmailContent } from '../types';
+import type { Source, ChatMessage, EmailContent } from '../types.ts';
 
 const API_KEY = process.env.API_KEY;
 
@@ -62,9 +62,12 @@ export const getAiBotResponse = async (prompt: string, location: Geolocation | n
             // This fix iterates over `placeAnswerSources.reviewSnippets` which is an array of review snippets as per the Gemini API response structure.
             if (chunk.maps.placeAnswerSources?.reviewSnippets) {
                 for (const review of chunk.maps.placeAnswerSources.reviewSnippets) {
-                    if (review.uri) {
+                    // FIX: The type definitions for `review` appear to be incorrect in the SDK. Casting to `any`
+                    // to access `uri` and `content` properties based on the API documentation for Maps grounding.
+                    const reviewData = review as any;
+                    if (reviewData.uri) {
                         // The review snippet object has `content` and `uri`, not `title`.
-                        sources.push({ title: review.content || 'Location details', uri: review.uri });
+                        sources.push({ title: reviewData.content || 'Location details', uri: reviewData.uri });
                     }
                 }
             }
