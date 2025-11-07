@@ -16,8 +16,113 @@ import type {
   ProductCategory, LucideIcon 
 } from './types.ts';
   
-// Service imports from various components
-import { getAiBotResponse, generateEmailDraft } from './services/geminiService.ts';
+// FIX: The import from 'services/geminiService.ts' was removed as the file is empty.
+// The Gemini service functions have been inlined here to resolve the build error.
+import { GoogleGenAI, Type } from "@google/genai";
+
+// ========= GEMINI SERVICE INLINED TO FIX BUILD ERROR =========
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+const getAiBotResponse = async (query: string, location: { latitude: number; longitude: number; } | null): Promise<{ text: string; sources: Source[] }> => {
+  const tools: any[] = [{ googleSearch: {} }, { googleMaps: {} }];
+  const toolConfig: any = location ? {
+      retrievalConfig: {
+        latLng: {
+          latitude: location.latitude,
+          longitude: location.longitude,
+        },
+      },
+  } : undefined;
+  
+  const systemInstruction = `You are Melotwo AI, a friendly and knowledgeable assistant for a Personal Protective Equipment (PPE) supplier named Melotwo.
+Your expertise is in South African Bureau of Standards (SABS) for mining and industrial safety equipment.
+When asked for product recommendations, refer to the products available on the Melotwo website.
+When asked about nearby locations or services, use the provided user location.
+Keep your answers concise, helpful, and professional.`;
+
+  try {
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: query,
+        config: {
+          tools,
+          ...(toolConfig && { toolConfig }),
+          systemInstruction,
+        }
+      });
+
+      const text = response.text;
+      const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+      
+      const sources: Source[] = [];
+      groundingChunks.forEach((chunk: any) => {
+        if (chunk.web && chunk.web.uri && chunk.web.title) {
+            sources.push({ title: chunk.web.title, uri: chunk.web.uri });
+        }
+        if (chunk.maps && chunk.maps.uri && chunk.maps.title) {
+            sources.push({ title: chunk.maps.title, uri: chunk.maps.uri });
+        }
+      });
+
+      return { text, sources: sources.filter(s => s.uri && s.title) };
+  } catch(e) {
+      console.error(e);
+      return { text: "Sorry, I'm having trouble connecting right now. Please try again later.", sources: [] };
+  }
+};
+
+const generateEmailDraft = async (messages: ChatMessage[]): Promise<EmailContent | null> => {
+    const conversationHistory = messages
+        .filter(msg => msg.id !== 'initial') // Exclude initial greeting
+        .map(msg => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.text}`)
+        .join('\n');
+    
+    if (!conversationHistory) {
+      return {
+        subject: 'Inquiry about Safety Equipment',
+        body: 'Hello Melotwo Team,\n\nI would like to inquire about...'
+      };
+    }
+    
+    const prompt = `Based on the following conversation between a user and an AI assistant for Melotwo (a PPE supplier), generate a concise and professional email draft for a price quote or inquiry.
+    
+    Conversation:
+    ---
+    ${conversationHistory}
+    ---
+    
+    Generate a subject line and a body for the email. The email should summarize the user's needs and request a formal quote or further information.
+    Assume the email is sent from a generic procurement manager to Melotwo. Keep it professional and to the point.
+    `;
+
+    try {
+        const responseSchema = {
+            type: Type.OBJECT,
+            properties: {
+                subject: { type: Type.STRING, description: "A concise subject line for the email." },
+                body: { type: Type.STRING, description: "The full body content of the email, including a professional greeting and closing." }
+            },
+            required: ['subject', 'body']
+        };
+
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+            config: {
+                responseMimeType: 'application/json',
+                responseSchema,
+            },
+        });
+
+        const jsonString = response.text.trim();
+        const emailContent: EmailContent = JSON.parse(jsonString);
+        return emailContent;
+
+    } catch (error) {
+        console.error("Error generating email draft:", error);
+        return null;
+    }
+};
 
 // ========= CONSTANTS INLINED TO FIX BUILD ERROR =========
 const PRODUCT_CATEGORIES: ProductCategory[] = [
