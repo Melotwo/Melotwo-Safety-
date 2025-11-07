@@ -1,16 +1,61 @@
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="scroll-smooth">
   <head>
-    <meta charset="UTF-8" />
+    <meta charset="UTF--8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SafetyStock PPE Procurement Hub</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
     <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
     <style>
-      :root { font-family: 'Inter', sans-serif; }
+      :root { 
+        font-family: 'Inter', sans-serif; 
+        --amber-500: #f59e0b;
+        --slate-950: #020617;
+      }
       @supports (font-variation-settings: normal) {
         :root { font-family: 'Inter var', sans-serif; }
+      }
+      
+      body {
+        background-color: #f8fafc;
+        background-image: radial-gradient(rgba(0, 0, 0, 0.04) 1px, transparent 0);
+        background-size: 30px 30px;
+        background-position: -15px -15px;
+      }
+
+      .dark body {
+        background-color: var(--slate-950);
+        background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 0);
+      }
+
+      /* Custom scrollbar */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background-color: rgba(156, 163, 175, 0.5);
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background-color: rgba(156, 163, 175, 0.7);
+      }
+      .dark ::-webkit-scrollbar-thumb {
+        background-color: rgba(100, 116, 139, 0.5);
+      }
+      .dark ::-webkit-scrollbar-thumb:hover {
+        background-color: rgba(100, 116, 139, 0.7);
+      }
+
+      /* Global focus styles for accessibility */
+      *:focus-visible {
+        outline: 2px solid var(--amber-500) !important;
+        outline-offset: 2px !important;
+        border-radius: 4px;
       }
     </style>
   <script type="importmap">
@@ -25,7 +70,7 @@
 }
 </script>
 </head>
-  <body class="bg-slate-50">
+  <body class="bg-slate-50 dark:bg-slate-950">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>
