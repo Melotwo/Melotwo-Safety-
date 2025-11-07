@@ -1,9 +1,9 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { MessageSquare, X, Send, Bot, User, Loader2, Link, ChevronRight, Mail, History, ThumbsUp, ThumbsDown } from 'lucide-react';
-import type { ChatMessage, EmailContent } from '../types';
-import { getAiBotResponse, generateEmailDraft } from '../services/geminiService';
-import EmailQuoteModal from './EmailQuoteModal';
+import type { ChatMessage, EmailContent } from '../types.ts';
+import { getAiBotResponse, generateEmailDraft } from '../services/geminiService.ts';
+import EmailQuoteModal from './EmailQuoteModal.tsx';
 
 const CHAT_HISTORY_KEY = 'melotwo-chat-history';
 const MAX_HISTORY_MESSAGES = 10;
