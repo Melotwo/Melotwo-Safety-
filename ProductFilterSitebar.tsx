@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { PRODUCT_CATEGORIES } from '../constants';
+import { PRODUCT_CATEGORIES } from '../constants.ts';
 import { Tag, BookmarkCheck, CheckCircle } from 'lucide-react';
 
 interface ProductFilterSidebarProps {
