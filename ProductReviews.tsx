@@ -1,8 +1,8 @@
 
 import React, { useState, useMemo } from 'react';
-import type { Review } from '../types';
+import type { Review } from '../types.ts';
 import { Send, ArrowUpDown, UserCircle } from 'lucide-react';
-import StarRating from './StarRating';
+import StarRating from './StarRating.tsx';
 
 interface ProductReviewsProps {
   productId: number;
