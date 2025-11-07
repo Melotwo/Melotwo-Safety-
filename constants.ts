@@ -1,5 +1,5 @@
 
-import type { Product, ProductCategory } from './types';
+import type { Product, ProductCategory } from './types.ts';
 import { HardHat, Hand, Footprints, Shield, Eye, Ear, Shirt } from 'lucide-react';
 
 export const PRODUCT_CATEGORIES: ProductCategory[] = [
