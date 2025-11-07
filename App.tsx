@@ -1,4 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { initializeApp } from 'firebase/app';
+import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
+import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, query, orderBy, where, addDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
 
 // Icon imports from various components
 import { 
@@ -10,12 +13,28 @@ import {
   Search
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-  
-// The Gemini service functions have been inlined here to resolve the build error.
+
+// NOTE: GoogleGenAI client inlined below
 import { GoogleGenAI, Type } from "@google/genai";
 
+// Global variables for Firebase configuration
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
-// ========= TYPES INLINED TO FIX BUILD ERROR =========
+// Initialize Firebase services outside of the component for reuse
+let app, db, auth;
+if (Object.keys(firebaseConfig).length > 0) {
+  try {
+    app = initializeApp(firebaseConfig);
+    db = getFirestore(app);
+    auth = getAuth(app);
+  } catch (e) {
+    console.error("Firebase Initialization Failed:", e);
+  }
+}
+
+// ========= TYPES INLINED =========
 interface Review {
   id: string;
   username: string;
@@ -31,9 +50,9 @@ interface Product {
   sabsCertified: boolean;
   sabsStandard?: string;
   description: string;
-  imageUrl: string;
+  imageUrl: string; // Dynamic, will be fetched
   affiliateUrl: string;
-  price?: number;
+  price?: number; // Dynamic, will be fetched
   isPrintable?: boolean;
   reviews?: Review[];
   isLoading?: boolean; // Added for dynamic data fetching state
@@ -69,54 +88,61 @@ interface ToastType {
   type: 'warning' | 'success' | 'info' | 'error';
 }
 
+interface FirestoreState {
+  db: ReturnType<typeof getFirestore> | null;
+  auth: ReturnType<typeof getAuth> | null;
+  userId: string | null;
+  isAuthReady: boolean;
+}
 
-// ========= GEMINI SERVICE INLINED TO FIX BUILD ERROR =========
+
+// ========= GEMINI SERVICE INLINED =========
 
 // Helper function to initialize AI and handle potential runtime errors.
 const getAiClient = () => {
-  try {
-    // This check is crucial for browser environments where `process` is not defined.
-    if (typeof process === 'undefined' || !process.env || !process.env.API_KEY) {
-      // In a production environment, you might want to disable AI features gracefully.
-      // For this app, we throw an error to make the configuration issue obvious during development.
-      throw new Error("API Key environment variable not found at runtime.");
-    }
-    return new GoogleGenAI({ apiKey: process.env.API_KEY });
-  } catch (e) {
-    console.error("AI Initialization Error: ", e);
-    return null;
+  const apiKey = "" // Placeholder for Canvas environment
+  if (apiKey === "") {
+    // In Canvas environment, we rely on the runtime to provide the key
+    return new GoogleGenAI({}); 
   }
+  return new GoogleGenAI({ apiKey });
 };
 
-const getAiBotResponse = async (query: string, location: { latitude: number; longitude: number; } | null): Promise<{ text: string; sources: Source[] }> => {
+const getAiBotResponse = async (query: string, chatHistory: ChatMessage[], location: { latitude: number; longitude: number; } | null): Promise<{ text: string; sources: Source[] }> => {
   const ai = getAiClient();
   if (!ai) {
-    return { text: "I'm sorry, but the AI assistant is currently unavailable due to a configuration issue. Please try again later.", sources: [] };
+    return { text: "I'm sorry, but the AI assistant is currently unavailable due to a configuration issue.", sources: [] };
   }
   
-  const tools: any[] = [{ googleSearch: {} }, { googleMaps: {} }];
-  const toolConfig: any = location ? {
-      retrievalConfig: {
-        latLng: {
-          latitude: location.latitude,
-          longitude: location.longitude,
-        },
-      },
-  } : undefined;
+  const tools: any[] = [{ googleSearch: {} }];
+  
+  // NOTE: Google Maps tool is not available in the public SDK and should be removed.
+  // const tools: any[] = [{ googleSearch: {} }, { googleMaps: {} }];
+  // const toolConfig: any = location ? {
+  //   retrievalConfig: {
+  //     latLng: {
+  //       latitude: location.latitude,
+  //       longitude: location.longitude,
+  //     },
+  //   },
+  // } : undefined;
   
   const systemInstruction = `You are Melotwo AI, a friendly and knowledgeable assistant for a Personal Protective Equipment (PPE) supplier named Melotwo.
 Your expertise is in South African Bureau of Standards (SABS) for mining and industrial safety equipment.
 When asked for product recommendations, refer to the products available on the Melotwo website.
-When asked about nearby locations or services, use the provided user location.
 Keep your answers concise, helpful, and professional.`;
+
+  const contents = chatHistory.map(msg => ({
+    role: msg.role,
+    parts: [{ text: msg.text }]
+  })).concat({ role: 'user', parts: [{ text: query }] });
 
   try {
       const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
-        contents: query,
+        contents: contents as any,
         config: {
           tools,
-          ...(toolConfig && { toolConfig }),
           systemInstruction,
         }
       });
@@ -129,9 +155,10 @@ Keep your answers concise, helpful, and professional.`;
         if (chunk.web && chunk.web.uri && chunk.web.title) {
             sources.push({ title: chunk.web.title, uri: chunk.web.uri });
         }
-        if (chunk.maps && chunk.maps.uri && chunk.maps.title) {
-            sources.push({ title: chunk.maps.title, uri: chunk.maps.uri });
-        }
+        // Removing Maps chunk extraction as the tool is removed.
+        // if (chunk.maps && chunk.maps.uri && chunk.maps.title) {
+        //     sources.push({ title: chunk.maps.title, uri: chunk.maps.uri });
+        // }
       });
 
       return { text, sources: sources.filter(s => s.uri && s.title) };
@@ -212,6 +239,9 @@ const fetchProductDetails = async (productName: string, productDescription: stri
     Product Name: "${productName}"
     Description: "${productDescription}"
     
+    If you cannot find a specific price, return null for price.
+    If you cannot find a suitable image URL, return null for imageUrl.
+    
     Provide ONLY the JSON object. Do not include any introductory text, comments, or markdown formatting.
   `;
 
@@ -235,6 +265,7 @@ const fetchProductDetails = async (productName: string, productDescription: stri
       model: 'gemini-2.5-flash',
       contents: prompt,
       config: {
+        tools: [{ googleSearch: {} }],
         responseMimeType: 'application/json',
         responseSchema,
       },
@@ -243,14 +274,18 @@ const fetchProductDetails = async (productName: string, productDescription: stri
     const jsonString = response.text.trim();
     const details = JSON.parse(jsonString);
     
-    if (typeof details.price !== 'number' && details.price !== null) {
-      details.price = null;
+    // Validate and sanitize response
+    let finalPrice: number | null = null;
+    if (typeof details.price === 'number' && details.price > 0) {
+      finalPrice = parseFloat(details.price.toFixed(2));
     }
-    if (typeof details.imageUrl !== 'string' || !details.imageUrl.startsWith('http')) {
-      details.imageUrl = null;
+    
+    let finalImageUrl: string | null = null;
+    if (typeof details.imageUrl === 'string' && details.imageUrl.startsWith('http')) {
+      finalImageUrl = details.imageUrl;
     }
 
-    return details;
+    return { price: finalPrice, imageUrl: finalImageUrl };
 
   } catch (error) {
     console.error(`Error fetching details for "${productName}":`, error);
@@ -259,7 +294,7 @@ const fetchProductDetails = async (productName: string, productDescription: stri
 };
 
 
-// ========= CONSTANTS INLINED TO FIX BUILD ERROR =========
+// ========= CONSTANTS INLINED =========
 const PRODUCT_CATEGORIES: ProductCategory[] = [
   { name: 'Head Protection', description: 'Helmets and hard hats for construction and mining.', icon: HardHat },
   { name: 'Hand Protection', description: 'Gloves for various industrial applications.', icon: Hand },
@@ -270,7 +305,7 @@ const PRODUCT_CATEGORIES: ProductCategory[] = [
   { name: 'Workwear', description: 'Durable and customizable clothing for the workplace.', icon: Shirt },
 ];
 
-const PRODUCTS: Product[] = [
+const INITIAL_PRODUCTS: Product[] = [
   {
     id: 1,
     name: 'Industrial Hard Hat V-Gard',
@@ -278,26 +313,11 @@ const PRODUCTS: Product[] = [
     sabsCertified: true,
     sabsStandard: 'SABS 1397',
     description: 'A durable and comfortable hard hat with a high-density polyethylene shell. Meets SABS 1397 standards.',
-    imageUrl: 'https://images.unsplash.com/photo-1581092570089-c45a27a5a87e?q=80&w=800&auto=format&fit=crop',
+    imageUrl: 'https://placehold.co/400x400/94A3B8/ffffff?text=Loading+Hat',
     affiliateUrl: 'https://mineafrica.co.za/',
-    price: 350.00,
     isPrintable: true,
-    reviews: [
-      {
-        id: 'review-1-1',
-        username: 'Safety Steve',
-        rating: 5,
-        comment: 'Excellent hard hat. Comfortable for all-day wear and feels very sturdy. The SABS certification gives me peace of mind.',
-        date: '2023-10-26T10:00:00Z',
-      },
-      {
-        id: 'review-1-2',
-        username: 'Procurement Pro',
-        rating: 4,
-        comment: 'Good value for a certified helmet. The team likes them. Docking one star because the color options were limited.',
-        date: '2023-09-15T14:30:00Z',
-      },
-    ],
+    reviews: [],
+    isLoading: true,
   },
   {
     id: 2,
@@ -306,10 +326,10 @@ const PRODUCTS: Product[] = [
     sabsCertified: true,
     sabsStandard: 'SABS EN388',
     description: 'Reinforced leather gloves for heavy-duty tasks. SABS certified for abrasion resistance.',
-    imageUrl: 'https://images.unsplash.com/photo-1620993369420-5312f38d39e3?q=80&w=800&auto=format&fit=crop',
+    imageUrl: 'https://placehold.co/400x400/94A3B8/ffffff?text=Loading+Gloves',
     affiliateUrl: 'https://mineafrica.co.za/',
-    price: 120.50,
     reviews: [],
+    isLoading: true,
   },
   {
     id: 3,
@@ -318,18 +338,10 @@ const PRODUCTS: Product[] = [
     sabsCertified: true,
     sabsStandard: 'SABS 20345',
     description: 'Anti-slip, oil-resistant sole with steel toe cap protection. SABS 20345 compliant.',
-    imageUrl: 'https://images.unsplash.com/photo-1628755712093-02051a81213f?q=80&w=800&auto=format&fit=crop',
+    imageUrl: 'https://placehold.co/400x400/94A3B8/ffffff?text=Loading+Boots',
     affiliateUrl: 'https://mineafrica.co.za/',
-    price: 899.99,
-    reviews: [
-       {
-        id: 'review-3-1',
-        username: 'Mark C.',
-        rating: 5,
-        comment: 'Best boots I\'ve owned. They survived a full year on the site with no issues. Waterproof and comfortable.',
-        date: '2023-11-01T08:00:00Z',
-      },
-    ]
+    reviews: [],
+    isLoading: true,
   },
   {
     id: 4,
@@ -338,22 +350,22 @@ const PRODUCTS: Product[] = [
     sabsCertified: true,
     sabsStandard: 'SABS 50361',
     description: '5-point adjustment harness for maximum safety during work at height. Complies with SABS 50361.',
-    imageUrl: 'https://images.unsplash.com/photo-1552121332-9c3a3782b78a?q=80&w=800&auto=format&fit=crop',
+    imageUrl: 'https://placehold.co/400x400/94A3B8/ffffff?text=Loading+Harness',
     affiliateUrl: 'https://mineafrica.co.za/',
-    price: 1500.00,
     reviews: [],
+    isLoading: true,
   },
-   {
+  {
     id: 5,
     name: 'Anti-Fog Safety Goggles',
     category: 'Eye Protection',
     sabsCertified: true,
     sabsStandard: 'SABS 166',
     description: 'Ventilated, anti-fog, and scratch-resistant goggles for full eye protection. SABS 166 certified.',
-    imageUrl: 'https://images.unsplash.com/photo-1608323223631-a8315a6f4438?q=80&w=800&auto=format&fit=crop',
+    imageUrl: 'https://placehold.co/400x400/94A3B8/ffffff?text=Loading+Goggles',
     affiliateUrl: 'https://mineafrica.co.za/',
-    price: 250.00,
     reviews: [],
+    isLoading: true,
   },
   {
     id: 6,
@@ -361,10 +373,10 @@ const PRODUCTS: Product[] = [
     category: 'Hearing Protection',
     sabsCertified: false,
     description: 'Comfortable earmuffs with a high Noise Reduction Rating (NRR) of 31dB.',
-    imageUrl: 'https://images.unsplash.com/photo-1618342468252-87a3d31006d8?q=80&w=800&auto=format&fit=crop',
+    imageUrl: 'https://placehold.co/400x400/94A3B8/ffffff?text=Loading+Earmuffs',
     affiliateUrl: 'https://mineafrica.co.za/',
-    price: 450.75,
     reviews: [],
+    isLoading: true,
   },
   {
     id: 7,
@@ -373,10 +385,10 @@ const PRODUCTS: Product[] = [
     sabsCertified: true,
     sabsStandard: 'SABS 1397',
     description: 'Specialized helmet for mining with high visibility reflective strips and lamp bracket. SABS 1397.',
-    imageUrl: 'https://images.unsplash.com/photo-1620635489839-93f8736a4f49?q=80&w=800&auto=format&fit=crop',
+    imageUrl: 'https://placehold.co/400x400/94A3B8/ffffff?text=Loading+Mining+Hat',
     affiliateUrl: 'https://mineafrica.co.za/',
-    price: 420.00,
     reviews: [],
+    isLoading: true,
   },
   {
     id: 8,
@@ -385,10 +397,10 @@ const PRODUCTS: Product[] = [
     sabsCertified: true,
     sabsStandard: 'SABS EN388',
     description: 'Level 5 cut resistance for handling sharp materials. Meets SABS EN388 standards.',
-    imageUrl: 'https://images.unsplash.com/photo-1590779031853-3375865a70eb?q=80&w=800&auto=format&fit=crop',
+    imageUrl: 'https://placehold.co/400x400/94A3B8/ffffff?text=Loading+Cut+Gloves',
     affiliateUrl: 'https://mineafrica.co.za/',
-    price: 180.00,
     reviews: [],
+    isLoading: true,
   },
   {
     id: 9,
@@ -397,11 +409,11 @@ const PRODUCTS: Product[] = [
     sabsCertified: true,
     sabsStandard: 'SANS 434',
     description: 'Bright, reflective safety vest for maximum visibility. Available for custom logo printing.',
-    imageUrl: 'https://images.unsplash.com/photo-1571434221972-383a1a586a16?q=80&w=800&auto=format&fit=crop',
+    imageUrl: 'https://placehold.co/400x400/94A3B8/ffffff?text=Loading+Safety+Vest',
     affiliateUrl: 'https://mineafrica.co.za/',
-    price: 280.00,
     isPrintable: true,
     reviews: [],
+    isLoading: true,
   },
   {
     id: 10,
@@ -409,18 +421,28 @@ const PRODUCTS: Product[] = [
     category: 'Workwear',
     sabsCertified: false,
     description: 'Comfortable and durable 100% cotton work shirt. Perfect for adding your company logo.',
-    imageUrl: 'https://images.unsplash.com/photo-1598032895397-b9472444bf20?q=80&w=800&auto=format&fit=crop',
+    imageUrl: 'https://placehold.co/400x400/94A3B8/ffffff?text=Loading+Shirt',
     affiliateUrl: 'https://mineafrica.co.za/',
-    price: 320.50,
     isPrintable: true,
     reviews: [],
+    isLoading: true,
   }
 ];
+
+const FALLBACK_IMAGE_URL = (text: string) => `https://placehold.co/400x400/D1D5DB/1F2937?text=${encodeURIComponent(text.replace(/\s/g, '+'))}`;
+
+// The collection path for private user data
+const getUserCollectionPath = (userId: string) => 
+  `/artifacts/${appId}/users/${userId}/melotwo_data`;
+
+// The collection path for public, shared data (e.g., reviews)
+const getPublicReviewsCollectionPath = () =>
+  `/artifacts/${appId}/public/data/melotwo_reviews`;
 
 
 // ========= ALL COMPONENT DEFINITIONS START =========
 
-// --- From components/StarRating.tsx ---
+// --- StarRating Component ---
 interface StarRatingProps {
   rating: number;
   totalStars?: number;
@@ -463,13 +485,14 @@ const StarRating: React.FC<StarRatingProps> = ({
 };
 
 
-// --- From components/CustomizationModal.tsx ---
+// --- CustomizationModal Component ---
 interface CustomizationModalProps {
   isOpen: boolean;
   onClose: () => void;
   product: Product;
+  onToast: (toast: Omit<ToastType, 'id'>) => void;
 }
-const CustomizationModal: React.FC<CustomizationModalProps> = ({ isOpen, onClose, product }) => {
+const CustomizationModal: React.FC<CustomizationModalProps> = ({ isOpen, onClose, product, onToast }) => {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -501,6 +524,14 @@ const CustomizationModal: React.FC<CustomizationModalProps> = ({ isOpen, onClose
     }
   };
 
+  const handleAddToCart = () => {
+    onToast({
+      message: `"${product.name}" with custom logo added to inquiry list!`,
+      type: 'success'
+    });
+    onClose();
+  }
+
   if (!isOpen) return null;
 
   return (
@@ -512,70 +543,76 @@ const CustomizationModal: React.FC<CustomizationModalProps> = ({ isOpen, onClose
       onClick={onClose}
     >
       <div 
-        className="relative bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-lg m-4 overflow-hidden"
+        className="relative bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-lg m-4 overflow-hidden transform transition-all scale-100 opacity-100"
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-start justify-between p-5 border-b border-slate-200 dark:border-slate-700">
           <div className="text-lg font-semibold text-slate-900 dark:text-slate-100" id="modal-title">
-            Customize: <span className="font-bold">{product.name}</span>
+            Customize: <span className="font-bold text-amber-500">{product.name}</span>
           </div>
           <button 
             type="button" 
-            className="text-slate-400 bg-transparent hover:bg-slate-200 hover:text-slate-900 dark:hover:bg-slate-600 dark:hover:text-white rounded-lg text-sm p-1.5 ml-auto inline-flex items-center" 
+            className="text-slate-400 bg-transparent hover:bg-slate-200 hover:text-slate-900 dark:hover:bg-slate-600 dark:hover:text-white rounded-lg text-sm p-1.5 ml-auto inline-flex items-center transition-colors" 
             onClick={onClose}
-            aria-label="Close modal"
+            aria-label="Close customization modal"
           >
             <X size={20} />
           </button>
         </div>
         <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-4">
-            <h3 className="font-semibold text-slate-700 dark:text-slate-300">Preview</h3>
-            <div className="relative w-full aspect-square bg-slate-100 dark:bg-slate-700 rounded-lg flex items-center justify-center overflow-hidden">
-              <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+            <h3 className="font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2"><Eye size={16}/> Preview</h3>
+            <div className="relative w-full aspect-square bg-slate-100 dark:bg-slate-700 rounded-lg flex items-center justify-center overflow-hidden border border-slate-300 dark:border-slate-600">
+              <img 
+                src={product.imageUrl} 
+                alt={product.name} 
+                className="w-full h-full object-cover" 
+                onError={(e) => { (e.target as HTMLImageElement).src = FALLBACK_IMAGE_URL(product.name) }}
+              />
               {logoUrl && (
                 <div className="absolute top-1/4 left-1/4 w-1/2 h-1/2 flex items-center justify-center p-2">
                     <img 
                         src={logoUrl} 
                         alt="Custom logo preview" 
                         className="max-w-full max-h-full object-contain" 
-                        style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.4))' }}
+                        style={{ filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.5))' }}
                     />
                 </div>
               )}
             </div>
           </div>
           <div className="space-y-4 flex flex-col justify-center">
-             <h3 className="font-semibold text-slate-700 dark:text-slate-300">Your Logo</h3>
-             <div className="flex flex-col items-center justify-center w-full">
-                <label htmlFor="logo-upload" className="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-300 dark:border-slate-600 border-dashed rounded-lg cursor-pointer bg-slate-50 dark:hover:bg-bray-800 dark:bg-slate-700 hover:bg-slate-100 dark:hover:border-slate-500 dark:hover:bg-slate-600 transition-colors">
+              <h3 className="font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2"><UploadCloud size={16}/> Upload Logo</h3>
+              <div className="flex flex-col items-center justify-center w-full">
+                <label htmlFor="logo-upload" className="flex flex-col items-center justify-center w-full h-32 border-2 border-amber-400 dark:border-amber-600 border-dashed rounded-lg cursor-pointer bg-slate-50 dark:hover:bg-bray-800 dark:bg-slate-700 hover:bg-amber-50 dark:hover:border-amber-500 dark:hover:bg-slate-600 transition-colors">
                     <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                        <UploadCloud className="w-8 h-8 mb-3 text-slate-500 dark:text-slate-400"/>
+                        <UploadCloud className="w-8 h-8 mb-3 text-amber-500 dark:text-amber-400"/>
                         <p className="mb-2 text-sm text-slate-500 dark:text-slate-400 text-center"><span className="font-semibold">Click to upload</span> or drag and drop</p>
                         <p className="text-xs text-slate-500 dark:text-slate-400">PNG, JPG, SVG (MAX. 5MB)</p>
                     </div>
                     <input id="logo-upload" ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
                 </label>
-            </div> 
-            {logoUrl && (
-              <button onClick={handleRemoveLogo} className="w-full flex items-center justify-center gap-2 text-sm text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md py-2 transition-colors">
-                <Trash2 size={16}/> Remove Logo
-              </button>
-            )}
+              </div> 
+              {logoUrl && (
+                <button onClick={handleRemoveLogo} className="w-full flex items-center justify-center gap-2 text-sm text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md py-2 transition-colors">
+                  <Trash2 size={16}/> Remove Logo
+                </button>
+              )}
           </div>
         </div>
         <div className="flex items-center justify-end p-5 border-t border-slate-200 dark:border-slate-700 space-x-3">
           <button 
             type="button" 
-            className="px-5 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600 focus:ring-4 focus:outline-none focus:ring-slate-300 dark:focus:ring-slate-500"
+            className="px-5 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600 focus:ring-4 focus:outline-none focus:ring-slate-300 dark:focus:ring-slate-500 transition-colors"
             onClick={onClose}
           >
             Cancel
           </button>
           <button 
             type="button" 
-            className="inline-flex items-center justify-center px-5 py-2.5 text-sm font-semibold text-white bg-amber-500 border border-transparent rounded-lg shadow-sm hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center justify-center px-5 py-2.5 text-sm font-semibold text-white bg-amber-500 border border-transparent rounded-lg shadow-md hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             disabled={!logoUrl}
+            onClick={handleAddToCart}
           >
             Add to Cart
             <ShoppingCart className="w-4 h-4 ml-2" />
@@ -587,13 +624,14 @@ const CustomizationModal: React.FC<CustomizationModalProps> = ({ isOpen, onClose
 };
 
 
-// --- From components/ProductReviews.tsx ---
+// --- ProductReviews Component ---
 interface ProductReviewsProps {
   productId: number;
   reviews: Review[];
   onAddReview: (productId: number, reviewData: Omit<Review, 'id' | 'date'>) => void;
+  onToast: (toast: Omit<ToastType, 'id'>) => void;
 }
-const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, reviews, onAddReview }) => {
+const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, reviews, onAddReview, onToast }) => {
   const [username, setUsername] = useState('');
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
@@ -621,6 +659,7 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, reviews, onA
     }
     setFormError('');
     onAddReview(productId, { username, rating, comment });
+    onToast({ message: "Review submitted! Thank you for your feedback.", type: 'success' });
     setUsername('');
     setRating(0);
     setComment('');
@@ -628,8 +667,8 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, reviews, onA
 
   return (
     <div className="p-5 border-t border-slate-200 dark:border-slate-700 space-y-6">
-      <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-lg">
-        <h4 className="font-semibold text-slate-800 dark:text-slate-200 mb-3">Leave a Review</h4>
+      <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-inner">
+        <h4 className="font-semibold text-slate-800 dark:text-slate-200 mb-3 text-lg flex items-center gap-2"><BookmarkCheck size={18} className="text-amber-500"/> Leave a Review</h4>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -640,10 +679,10 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, reviews, onA
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Your Name"
-                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md focus:ring-1 focus:ring-amber-500 bg-white dark:bg-slate-800 text-sm"
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-amber-500 focus:border-amber-500 bg-white dark:bg-slate-800 text-sm shadow-sm"
               />
             </div>
-            <div className="flex items-center">
+            <div className="flex items-center justify-start sm:justify-end">
               <span className="text-sm text-slate-600 dark:text-slate-400 mr-3">Your Rating:</span>
               <StarRating rating={rating} onRatingChange={setRating} size={20} />
             </div>
@@ -656,29 +695,29 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, reviews, onA
               onChange={(e) => setComment(e.target.value)}
               placeholder="Share your thoughts on this product..."
               rows={3}
-              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md focus:ring-1 focus:ring-amber-500 bg-white dark:bg-slate-800 text-sm"
+              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-amber-500 focus:border-amber-500 bg-white dark:bg-slate-800 text-sm shadow-sm"
             ></textarea>
           </div>
-          {formError && <p className="text-sm text-red-500">{formError}</p>}
-          <button type="submit" className="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold text-white bg-amber-500 border border-transparent rounded-md shadow-sm hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500">
+          {formError && <p className="text-sm text-red-500 flex items-center gap-1"><XCircle size={16}/>{formError}</p>}
+          <button type="submit" className="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold text-white bg-amber-500 border border-transparent rounded-lg shadow-md hover:bg-amber-600 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500">
             Submit Review <Send size={14} className="ml-2" />
           </button>
         </form>
       </div>
       <div>
         <div className="flex justify-between items-center mb-4">
-          <h4 className="font-semibold text-slate-800 dark:text-slate-200">{reviews.length} Review{reviews.length !== 1 && 's'}</h4>
+          <h4 className="font-semibold text-slate-800 dark:text-slate-200 text-xl">{reviews.length} Customer Review{reviews.length !== 1 && 's'}</h4>
           {reviews.length > 1 && (
             <div className="flex items-center space-x-2">
-              <label htmlFor={`sort-reviews-${productId}`} className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                <ArrowUpDown className="w-4 h-4 inline mr-1.5" />
+              <label htmlFor={`sort-reviews-${productId}`} className="text-sm font-medium text-slate-600 dark:text-slate-400 sr-only sm:not-sr-only">
+                <ArrowUpDown className="w-4 h-4 inline mr-1.5 hidden sm:inline" />
                 Sort:
               </label>
               <select
                 id={`sort-reviews-${productId}`}
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
-                className="block pl-2 pr-8 py-1 text-sm border-slate-300 dark:border-slate-600 focus:outline-none focus:ring-amber-500 focus:border-amber-500 rounded-md bg-white dark:bg-slate-800"
+                className="block pl-2 pr-8 py-1 text-sm border-slate-300 dark:border-slate-600 focus:outline-none focus:ring-amber-500 focus:border-amber-500 rounded-lg bg-white dark:bg-slate-800 shadow-sm"
               >
                 <option value="date-desc">Newest</option>
                 <option value="rating-desc">Highest Rating</option>
@@ -687,27 +726,32 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, reviews, onA
             </div>
           )}
         </div>
-        <div className="space-y-5">
+        <div className="space-y-6">
           {sortedReviews.length > 0 ? (
             sortedReviews.map(review => (
-              <div key={review.id} className="flex items-start space-x-4">
-                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
-                  <UserCircle className="w-6 h-6 text-slate-500 dark:text-slate-400" />
+              <div key={review.id} className="flex items-start space-x-4 p-4 bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-100 dark:border-slate-700">
+                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900 flex items-center justify-center">
+                  <UserCircle className="w-6 h-6 text-amber-600 dark:text-amber-400" />
                 </div>
-                <div>
-                  <div className="flex items-center space-x-3">
-                    <p className="font-semibold text-sm text-slate-800 dark:text-slate-200">{review.username}</p>
-                    <StarRating rating={review.rating} size={14} />
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <p className="font-semibold text-sm text-slate-800 dark:text-slate-200">{review.username}</p>
+                      <StarRating rating={review.rating} size={14} />
+                    </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      {new Date(review.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                    </p>
                   </div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    {new Date(review.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-                  </p>
                   <p className="text-sm text-slate-600 dark:text-slate-300 mt-2">{review.comment}</p>
                 </div>
               </div>
             ))
           ) : (
-            <p className="text-sm text-slate-500 dark:text-slate-400 py-4 text-center">No reviews yet. Be the first to share your thoughts!</p>
+            <div className="text-center py-8 border border-dashed border-slate-300 dark:border-slate-700 rounded-lg">
+                <Info size={24} className="w-10 h-10 mx-auto text-slate-400 mb-2"/>
+                <p className="text-sm text-slate-500 dark:text-slate-400">No reviews yet. Share your experience!</p>
+            </div>
           )}
         </div>
       </div>
@@ -716,13 +760,14 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, reviews, onA
 };
 
 
-// --- From components/EmailQuoteModal.tsx ---
+// --- EmailQuoteModal Component (Completed) ---
 interface EmailQuoteModalProps {
   isOpen: boolean;
   onClose: () => void;
   emailContent: EmailContent | null;
+  onToast: (toast: Omit<ToastType, 'id'>) => void;
 }
-const EmailQuoteModal: React.FC<EmailQuoteModalProps> = ({ isOpen, onClose, emailContent }) => {
+const EmailQuoteModal: React.FC<EmailQuoteModalProps> = ({ isOpen, onClose, emailContent, onToast }) => {
   const [recipient, setRecipient] = useState('');
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
@@ -740,11 +785,20 @@ const EmailQuoteModal: React.FC<EmailQuoteModalProps> = ({ isOpen, onClose, emai
   if (!isOpen) return null;
 
   const handleCopyToClipboard = () => {
-    const emailBodyForKlaviyo = `Subject: ${subject}\n\n${body}`;
-    navigator.clipboard.writeText(emailBodyForKlaviyo).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
+    // Format the entire email for easy pasting
+    const emailBodyForKlaviyo = `Subject: ${subject}\n\nTo: ${recipient || '[Insert Recipient Email]'}\n\n${body}`;
+    
+    // Fallback for clipboard access
+    const tempElement = document.createElement('textarea');
+    tempElement.value = emailBodyForKlaviyo;
+    document.body.appendChild(tempElement);
+    tempElement.select();
+    document.execCommand('copy');
+    document.body.removeChild(tempElement);
+    
+    setCopied(true);
+    onToast({ message: "Email copied to clipboard!", type: 'info' });
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const handleSendMail = () => {
@@ -762,16 +816,16 @@ const EmailQuoteModal: React.FC<EmailQuoteModalProps> = ({ isOpen, onClose, emai
       onClick={onClose}
     >
       <div
-        className="relative bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-2xl m-4 overflow-hidden flex flex-col max-h-[90vh]"
+        className="relative bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-2xl m-4 overflow-hidden flex flex-col max-h-[90vh] transform transition-all scale-100 opacity-100"
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-start justify-between p-5 border-b border-slate-200 dark:border-slate-700">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100" id="modal-title">
-            Generated Email Draft
+          <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2" id="modal-title">
+            <Mail className="w-5 h-5 text-amber-500"/> Generated Email Draft
           </h2>
           <button
             type="button"
-            className="text-slate-400 bg-transparent hover:bg-slate-200 hover:text-slate-900 dark:hover:bg-slate-600 dark:hover:text-white rounded-lg text-sm p-1.5 ml-auto inline-flex items-center"
+            className="text-slate-400 bg-transparent hover:bg-slate-200 hover:text-slate-900 dark:hover:bg-slate-600 dark:hover:text-white rounded-lg text-sm p-1.5 ml-auto inline-flex items-center transition-colors"
             onClick={onClose}
             aria-label="Close modal"
           >
@@ -779,17 +833,21 @@ const EmailQuoteModal: React.FC<EmailQuoteModalProps> = ({ isOpen, onClose, emai
           </button>
         </div>
         <div className="p-6 space-y-4 overflow-y-auto">
+          <div className='bg-amber-50 dark:bg-slate-700/50 p-3 rounded-lg flex items-center text-sm text-slate-700 dark:text-slate-300 border border-amber-200 dark:border-slate-600'>
+              <Info size={16} className='flex-shrink-0 text-amber-600 mr-2'/>
+              This draft summarizes your chat. Use the "Send Email" button to open your mail app.
+          </div>
           <div>
             <label htmlFor="recipient-email" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Recipient Email
+              Recipient Email (Optional, for mail app link)
             </label>
             <input
               type="email"
               id="recipient-email"
               value={recipient}
               onChange={(e) => setRecipient(e.target.value)}
-              placeholder="procurement@example.com"
-              className="block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-slate-200"
+              placeholder="sales@melotwo.com"
+              className="block w-full rounded-lg border-slate-300 dark:border-slate-600 shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-slate-200 p-2.5"
             />
           </div>
           <div>
@@ -801,7 +859,7 @@ const EmailQuoteModal: React.FC<EmailQuoteModalProps> = ({ isOpen, onClose, emai
               id="email-subject"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
-              className="block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-slate-200"
+              className="block w-full rounded-lg border-slate-300 dark:border-slate-600 shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-200 p-2.5"
             />
           </div>
           <div>
@@ -810,46 +868,29 @@ const EmailQuoteModal: React.FC<EmailQuoteModalProps> = ({ isOpen, onClose, emai
             </label>
             <textarea
               id="email-body"
-              rows={10}
               value={body}
               onChange={(e) => setBody(e.target.value)}
-              className="block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-slate-200"
-            />
-          </div>
-          <div className="p-3 bg-amber-50 dark:bg-amber-900/30 rounded-lg flex items-start gap-3">
-              <Info className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-amber-800 dark:text-amber-300">
-                Use 'Copy for Klaviyo' to easily paste this content into your marketing campaigns.
-              </p>
+              rows={10}
+              className="block w-full rounded-lg border-slate-300 dark:border-slate-600 shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-200 p-2.5 resize-none font-mono text-xs"
+            ></textarea>
           </div>
         </div>
-        <div className="flex items-center justify-between p-5 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+        <div className="flex items-center justify-end p-5 border-t border-slate-200 dark:border-slate-700 space-x-3">
           <button
             type="button"
+            className="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-700 rounded-lg border border-slate-300 dark:border-slate-600 shadow-sm hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-300"
             onClick={handleCopyToClipboard}
-            className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-amber-700 bg-amber-100 border border-transparent rounded-md hover:bg-amber-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 dark:ring-offset-slate-800"
           >
-            {copied ? <Check className="w-5 h-5 mr-2 text-green-600" /> : <Copy className="w-5 h-5 mr-2" />}
-            {copied ? 'Copied!' : 'Copy for Klaviyo'}
+            {copied ? <Check size={16} className='mr-2' /> : <Copy size={16} className='mr-2' />}
+            {copied ? 'Copied!' : 'Copy Text'}
           </button>
-          <div className="flex items-center space-x-3">
-             <button
-              type="button"
-              className="px-5 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600"
-              onClick={onClose}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleSendMail}
-              disabled={!recipient}
-              className="inline-flex items-center justify-center px-5 py-2 text-sm font-semibold text-white bg-amber-500 border border-transparent rounded-lg shadow-sm hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 dark:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Send via Email Client
-              <Send className="w-4 h-4 ml-2" />
-            </button>
-          </div>
+          <button
+            type="button"
+            className="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold text-white bg-amber-500 border border-transparent rounded-lg shadow-md hover:bg-amber-600 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500"
+            onClick={handleSendMail}
+          >
+            Send Email <Send size={16} className='ml-2' />
+          </button>
         </div>
       </div>
     </div>
@@ -857,616 +898,715 @@ const EmailQuoteModal: React.FC<EmailQuoteModalProps> = ({ isOpen, onClose, emai
 };
 
 
-// --- From components/ProductCard.tsx ---
-const SABS_STANDARD_DETAILS: { [key: string]: string } = {
-  'SABS 1397': 'Specifies requirements for industrial safety helmets to protect the head from falling objects and electrical hazards.',
-  'SABS EN388': 'Covers the requirements, test methods, marking, and information for protective gloves against mechanical risks like abrasion and cuts.',
-  'SABS 20345': 'Details the basic and additional requirements for safety footwear, including features like toe protection and slip resistance.',
-  'SABS 50361': 'Pertains to full body harnesses used in fall arrest systems, outlining design, performance, and testing requirements for working at height.',
-  'SABS 166': 'Specifies the requirements for personal eye-protectors, including optical quality, strength, and resistance to various hazards.',
-  'SANS 434': 'Relates to high-visibility warning clothing, ensuring wearers are conspicuous in hazardous situations under any light conditions.',
-};
-interface ProductCardProps {
-  product: Product;
-  onToggleCompare: (product: Product) => void;
-  isInCompare: boolean;
-  isCompareDisabled: boolean;
-  onAddReview: (productId: number, reviewData: Omit<Review, 'id' | 'date'>) => void;
-  onQuickView: (product: Product) => void;
+// --- Toast Component ---
+interface ToastProps {
+  toast: ToastType;
+  onClose: (id: string) => void;
 }
-const ProductCard: React.FC<ProductCardProps> = ({ product, onToggleCompare, isInCompare, isCompareDisabled, onAddReview, onQuickView }) => {
-  const [quantity, setQuantity] = useState(1);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isShareOpen, setIsShareOpen] = useState(false);
-  const [linkCopied, setLinkCopied] = useState(false);
-  const [isReviewsOpen, setIsReviewsOpen] = useState(false);
-
-  const shareButtonRef = useRef<HTMLButtonElement>(null);
-  const sharePopoverRef = useRef<HTMLDivElement>(null);
-
-  const sabsDetail = product.sabsStandard ? SABS_STANDARD_DETAILS[product.sabsStandard] : undefined;
-
-  const averageRating = product.reviews && product.reviews.length > 0
-    ? product.reviews.reduce((acc, review) => acc + review.rating, 0) / product.reviews.length
-    : 0;
-  
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-        if (
-            isShareOpen &&
-            sharePopoverRef.current &&
-            !sharePopoverRef.current.contains(event.target as Node) &&
-            shareButtonRef.current &&
-            !shareButtonRef.current.contains(event.target as Node)
-        ) {
-            setIsShareOpen(false);
-        }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isShareOpen]);
-
-  const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseInt(e.target.value, 10);
-    if (!isNaN(value) && value >= 1) {
-      setQuantity(value);
-    } else if (e.target.value === '') {
-      // Allow empty input
+const Toast: React.FC<ToastProps> = ({ toast, onClose }) => {
+  const Icon = useMemo(() => {
+    switch (toast.type) {
+      case 'success': return CheckCircle;
+      case 'error': return XCircle;
+      case 'warning': return AlertTriangle;
+      case 'info': return Info;
+      default: return Info;
     }
-  };
+  }, [toast.type]);
 
-  const incrementQuantity = () => setQuantity(prev => prev + 1);
-  const decrementQuantity = () => setQuantity(prev => (prev > 1 ? prev - 1 : 1));
-  
-  const handleCopyLink = () => {
-    const productUrl = `${window.location.origin}${window.location.pathname}#product-${product.id}`;
-    navigator.clipboard.writeText(productUrl).then(() => {
-        setLinkCopied(true);
-        setTimeout(() => {
-            setLinkCopied(false);
-            setIsShareOpen(false);
-        }, 2000);
-    });
-  };
+  const colorClass = useMemo(() => {
+    switch (toast.type) {
+      case 'success': return 'bg-green-500 text-white';
+      case 'error': return 'bg-red-500 text-white';
+      case 'warning': return 'bg-yellow-500 text-slate-900';
+      case 'info': return 'bg-sky-500 text-white';
+      default: return 'bg-slate-600 text-white';
+    }
+  }, [toast.type]);
 
-  if (product.isLoading) {
-    return (
-      <div className="flex flex-col bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-md overflow-hidden animate-pulse">
-        <div className="w-full h-48 bg-slate-200 dark:bg-slate-700"></div>
-        <div className="p-5 flex flex-col flex-grow">
-          <div className="h-6 bg-slate-200 dark:bg-slate-700 rounded w-3/4 mb-3"></div>
-          <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-full"></div>
-          <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-1/2 mt-2"></div>
-          <div className="mt-auto pt-4 border-t border-slate-200 dark:border-slate-700 space-y-3 mt-4">
-             <div className="h-10 bg-slate-200 dark:bg-slate-700 rounded w-full"></div>
-             <div className="h-10 bg-slate-200 dark:bg-slate-700 rounded w-full"></div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const productUrl = encodeURIComponent(`${window.location.origin}${window.location.pathname}#product-${product.id}`);
-  const productText = encodeURIComponent(`Check out this product: ${product.name}`);
-  const twitterUrl = `https://twitter.com/intent/tweet?url=${productUrl}&text=${productText}`;
-  const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${productUrl}`;
-  const linkedinUrl = `https://www.linkedin.com/shareArticle?mini=true&url=${productUrl}&title=${productText}`;
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onClose(toast.id);
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [toast.id, onClose]);
 
   return (
-    <div className="flex flex-col">
-      <div id={`product-${product.id}`} className={`group flex flex-col bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden ${isReviewsOpen ? 'rounded-t-lg' : 'rounded-lg'}`}>
-        <div className="overflow-hidden relative">
-          <img className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300" src={product.imageUrl} alt={product.name} />
-          <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <button 
-                onClick={() => onQuickView(product)}
-                className="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold text-slate-900 bg-white/90 border border-transparent rounded-md shadow-sm hover:bg-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500"
-            >
-                <Eye size={16} className="mr-2" />
-                Quick View
-            </button>
-          </div>
-          {product.isPrintable && (
-            <div className="absolute top-3 right-3 bg-indigo-500 text-white text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow-md">
-              <Printer size={14} />
-              <span>Customizable</span>
-            </div>
-          )}
-        </div>
-        <div className="p-5 flex flex-col flex-grow">
-          <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200">{product.name}</h3>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 flex-grow">{product.description}</p>
-          
-          {product.price && (
-            <div className="mt-3">
-              <p className="text-xl font-bold text-slate-800 dark:text-slate-200">
-                {product.price.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR' })}
-              </p>
-            </div>
-          )}
-          
-          <div className="flex items-center mt-2">
-             {averageRating > 0 ? (
-                <>
-                  <StarRating rating={averageRating} />
-                  <span className="ml-2 text-xs text-slate-500 dark:text-slate-400">
-                    {averageRating.toFixed(1)} average rating
-                  </span>
-                </>
-            ) : (
-                <span className="text-xs text-slate-500 dark:text-slate-400">No reviews yet</span>
-            )}
-          </div>
-          
-          {product.sabsCertified && (
-            <div className="mt-3">
-              <div className="relative group inline-flex items-center" aria-describedby={`sabs-tooltip-${product.id}`}>
-                <div className="flex items-center text-sm text-green-600 dark:text-green-500 font-medium cursor-help">
-                  <CheckCircle className="w-4 h-4 mr-1.5" />
-                  <span>SABS Certified</span>
-                  {product.sabsStandard && (
-                    <span className="ml-2 px-2 py-0.5 bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300 text-xs font-semibold rounded-full">
-                      {product.sabsStandard}
-                    </span>
-                  )}
-                </div>
-                {sabsDetail && (
-                  <div
-                    id={`sabs-tooltip-${product.id}`}
-                    role="tooltip"
-                    className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 bg-slate-800 dark:bg-slate-900 text-white text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity duration-300 pointer-events-none z-10"
-                  >
-                    <h4 className="font-bold border-b border-slate-600 pb-1 mb-1.5">{product.sabsStandard}</h4>
-                    <p className="leading-relaxed">{sabsDetail}</p>
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-slate-800 dark:border-t-slate-900"></div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-          
-          <div className="mt-auto pt-4 border-t border-slate-200 dark:border-slate-700 space-y-3">
-            {product.isPrintable ? (
-                <button 
-                  onClick={() => setIsModalOpen(true)}
-                  className="w-full inline-flex items-center justify-center px-4 py-2 text-sm font-semibold text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                    <Printer className="w-4 h-4 mr-2" />
-                    Customize & Add to Cart
-                </button>
-            ) : (
-              <div className="flex items-center gap-2">
-                  <div className="flex items-center border border-slate-300 dark:border-slate-600 rounded-md">
-                      <button 
-                          onClick={decrementQuantity}
-                          className="px-2.5 py-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-l-md transition-colors disabled:opacity-50"
-                          aria-label="Decrease quantity"
-                          disabled={quantity <= 1}
-                      >
-                          <Minus size={16} />
-                      </button>
-                      <input
-                          type="number"
-                          value={quantity}
-                          onChange={handleQuantityChange}
-                          className="w-12 h-full text-center border-l border-r border-slate-300 dark:border-slate-600 bg-transparent dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-amber-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                          min="1"
-                          aria-label="Product quantity"
-                      />
-                      <button 
-                          onClick={incrementQuantity}
-                          className="px-2.5 py-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-r-md transition-colors"
-                          aria-label="Increase quantity"
-                      >
-                          <Plus size={16} />
-                      </button>
-                  </div>
-                  <button className="flex-grow inline-flex items-center justify-center px-4 py-2 text-sm font-semibold text-white bg-amber-500 border border-transparent rounded-md shadow-sm hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500">
-                      <ShoppingCart className="w-4 h-4 mr-2" />
-                      Add to Cart
-                  </button>
-              </div>
-            )}
-              
-              <div className="grid grid-cols-3 gap-2 text-center text-sm">
-                  <div className="relative">
-                      <button
-                        ref={shareButtonRef}
-                        onClick={() => setIsShareOpen(!isShareOpen)}
-                        className="w-full flex items-center justify-center gap-1.5 text-slate-600 dark:text-slate-400 hover:text-amber-600 dark:hover:text-amber-500 transition-colors py-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700"
-                      >
-                          <Share2 size={14}/> Share
-                      </button>
-                      {isShareOpen && (
-                          <div ref={sharePopoverRef} className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max p-2 bg-white dark:bg-slate-900 rounded-lg shadow-lg z-10 border border-slate-200 dark:border-slate-700">
-                              <div className="flex items-center gap-2 mb-2">
-                                  <input type="text" readOnly value={`${window.location.origin}${window.location.pathname}#product-${product.id}`} className="w-full text-xs bg-slate-100 dark:bg-slate-800 rounded-md px-2 py-1 border border-slate-300 dark:border-slate-600" />
-                                  <button onClick={handleCopyLink} className="p-1.5 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700">
-                                      {linkCopied ? <Check size={14} className="text-green-500"/> : <Copy size={14}/>}
-                                  </button>
-                              </div>
-                              <div className="flex items-center justify-center gap-2">
-                                  <a href={twitterUrl} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700"><Twitter size={16} /></a>
-                                  <a href={facebookUrl} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700"><Facebook size={16} /></a>
-                                  <a href={linkedinUrl} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700"><Linkedin size={16} /></a>
-                              </div>
-                          </div>
-                      )}
-                  </div>
-
-                  <button
-                    onClick={() => onToggleCompare(product)}
-                    disabled={isCompareDisabled && !isInCompare}
-                    className={`w-full flex items-center justify-center gap-1.5 transition-colors py-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 ${
-                        isInCompare
-                        ? 'text-amber-600 dark:text-amber-500 font-semibold'
-                        : 'text-slate-600 dark:text-slate-400'
-                    } disabled:opacity-50 disabled:cursor-not-allowed`}
-                    title={isCompareDisabled && !isInCompare ? "Maximum 4 products for comparison" : ""}
-                  >
-                      <Scale size={14}/> {isInCompare ? 'Comparing' : 'Compare'}
-                  </button>
-
-                  <button
-                    onClick={() => setIsReviewsOpen(!isReviewsOpen)}
-                    className="w-full flex items-center justify-center gap-1.5 text-slate-600 dark:text-slate-400 hover:text-amber-600 dark:hover:text-amber-500 transition-colors py-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700"
-                  >
-                      <MessageSquare size={14}/> Reviews ({product.reviews?.length || 0})
-                  </button>
-              </div>
-          </div>
-        </div>
+    <div className={`p-4 rounded-lg shadow-lg flex items-center justify-between w-full max-w-sm transition-all duration-300 ease-out transform translate-y-0 ${colorClass}`}>
+      <div className="flex items-center space-x-3">
+        <Icon size={20} className="flex-shrink-0" />
+        <span className="text-sm font-medium">{toast.message}</span>
       </div>
-      
-      <CustomizationModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        product={product}
-      />
-
-      {isReviewsOpen && product.reviews && (
-          <div className="bg-white dark:bg-slate-800 border-x border-b border-slate-200 dark:border-slate-700 rounded-b-lg -mt-1 shadow-md z-0 relative">
-            <ProductReviews
-                productId={product.id}
-                reviews={product.reviews}
-                onAddReview={onAddReview}
-            />
-          </div>
-      )}
+      <button onClick={() => onClose(toast.id)} className="p-1 rounded-full hover:bg-black/10 transition-colors" aria-label="Close notification">
+        <X size={16} />
+      </button>
     </div>
   );
 };
 
 
-// --- From components/Navbar.tsx ---
-const Navbar: React.FC<{ onThemeToggle: () => void; isDarkMode: boolean }> = ({ onThemeToggle, isDarkMode }) => (
-  <nav className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-40 border-b border-slate-200 dark:border-slate-800">
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="flex justify-between items-center h-16">
-        <div className="flex items-center space-x-4">
-          <ShieldCheck className="w-8 h-8 text-amber-500" />
-          <span className="text-xl font-bold text-slate-800 dark:text-slate-200">Melotwo PPE Hub</span>
-        </div>
-        <div className="flex items-center space-x-4">
-          <button onClick={onThemeToggle} className="p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 dark:focus:ring-offset-slate-900">
-            {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
-            <span className="sr-only">Toggle theme</span>
-          </button>
-        </div>
-      </div>
-    </div>
-  </nav>
-);
+// --- App Component (Main) ---
+const App: React.FC = () => {
+  const [firestoreState, setFirestoreState] = useState<FirestoreState>({
+    db: null,
+    auth: null,
+    userId: null,
+    isAuthReady: false,
+  });
+  const { db: firestoreDb, userId, isAuthReady } = firestoreState;
 
-// --- From components/EmailCapture.tsx ---
-const EmailCapture: React.FC = () => (
-    <div className="bg-slate-100 dark:bg-slate-800/50 rounded-lg my-16">
-        <div className="max-w-4xl mx-auto text-center py-12 px-4 sm:px-6 lg:py-16 lg:px-8">
-            <h2 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100 sm:text-4xl">
-                <span className="block">Stay Ahead in Safety.</span>
-            </h2>
-            <p className="mt-4 text-lg leading-6 text-slate-600 dark:text-slate-400">
-                Get the latest on SABS standards, new product arrivals, and exclusive offers delivered right to your inbox.
-            </p>
-            <form className="mt-8 sm:flex sm:justify-center">
-                <div className="min-w-0 flex-1">
-                    <label htmlFor="email-address" className="sr-only">Email address</label>
-                    <input
-                        id="email-address"
-                        name="email-address"
-                        type="email"
-                        autoComplete="email"
-                        required
-                        className="block w-full px-5 py-3 border border-slate-300 dark:border-slate-600 rounded-md text-base text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-100 dark:focus:ring-offset-slate-900 focus:ring-amber-500 bg-white dark:bg-slate-800"
-                        placeholder="Enter your email"
-                    />
-                </div>
-                <div className="mt-3 sm:mt-0 sm:ml-3">
-                    <button
-                        type="submit"
-                        className="block w-full py-3 px-5 rounded-md shadow bg-amber-500 text-white font-medium hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-100 dark:focus:ring-offset-slate-900 focus:ring-amber-500"
-                    >
-                        Subscribe
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-);
+  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
+  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
+  const [currentQuery, setCurrentQuery] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [view, setView] = useState<'store' | 'chat'>('store'); // store view is default
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [emailQuoteModalOpen, setEmailQuoteModalOpen] = useState(false);
+  const [emailDraft, setEmailDraft] = useState<EmailContent | null>(null);
+  const [customizationModalProduct, setCustomizationModalProduct] = useState<Product | null>(null);
+  const [toasts, setToasts] = useState<ToastType[]>([]);
 
-// --- From components/Footer.tsx ---
-const Footer: React.FC = () => (
-  <footer className="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800">
-    <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 text-center text-sm text-slate-500 dark:text-slate-400">
-      <p>&copy; {new Date().getFullYear()} Melotwo PPE Procurement Hub. All rights reserved.</p>
-      <p className="mt-1">Your trusted partner in workplace safety and SABS-certified equipment.</p>
-    </div>
-  </footer>
-);
+  // Refs for auto-scrolling
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
-// --- From components/AiChatBot.tsx ---
-const AiChatBot: React.FC = () => {
-    const [isOpen, setIsOpen] = useState(false);
-    const [messages, setMessages] = useState<ChatMessage[]>([
-        { id: 'initial', role: 'model', text: 'Hello! I am Melotwo AI. How can I assist you with your SABS-certified PPE needs today?' }
-    ]);
-    const [input, setInput] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-    const [userLocation, setUserLocation] = useState<{ latitude: number, longitude: number } | null>(null);
-    const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
-    const [emailContent, setEmailContent] = useState<EmailContent | null>(null);
+  // --- Firestore & Auth Setup ---
+  useEffect(() => {
+    if (!app || !auth || !db) {
+      setFirestoreState(s => ({ ...s, isAuthReady: true }));
+      console.error("Firebase is not configured or failed to initialize.");
+      return;
+    }
 
-    const chatEndRef = useRef<HTMLDivElement>(null);
-
-    const scrollToBottom = () => {
-        chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    };
-
-    useEffect(scrollToBottom, [messages]);
-
-    useEffect(() => {
-        if (isOpen) {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    setUserLocation({
-                        latitude: position.coords.latitude,
-                        longitude: position.coords.longitude
-                    });
-                },
-                (error) => {
-                    console.warn("Could not get user location:", error.message);
-                }
-            );
+    const signInAndListen = async () => {
+      try {
+        if (initialAuthToken) {
+          await signInWithCustomToken(auth, initialAuthToken);
+        } else {
+          await signInAnonymously(auth);
         }
-    }, [isOpen]);
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!input.trim() || isLoading) return;
-
-        const userMessage: ChatMessage = { id: Date.now().toString(), role: 'user', text: input };
-        setMessages(prev => [...prev, userMessage]);
-        setInput('');
-        setIsLoading(true);
-        
-        const { text, sources } = await getAiBotResponse(input, userLocation);
-
-        const modelMessage: ChatMessage = {
-            id: (Date.now() + 1).toString(),
-            role: 'model',
-            text: text,
-            sources: sources,
-            rating: null,
-        };
-        
-        setMessages(prev => [...prev, modelMessage]);
-        setIsLoading(false);
-    };
-
-    const handleRating = (messageId: string, rating: 'up' | 'down') => {
-        setMessages(messages.map(msg => msg.id === messageId ? { ...msg, rating: msg.rating === rating ? null : rating } : msg));
-    };
-
-    const handleGenerateEmail = async () => {
-      setIsLoading(true);
-      const generatedContent = await generateEmailDraft(messages);
-      setIsLoading(false);
-      if (generatedContent) {
-        setEmailContent(generatedContent);
-        setIsEmailModalOpen(true);
-      } else {
-        // Handle error - maybe show a toast
-        console.error("Failed to generate email content.");
+      } catch (error) {
+        console.error("Firebase Auth Error:", error);
       }
     };
 
-    return (
-        <>
-            <div className="fixed bottom-5 right-5 z-50">
-                <button
-                    onClick={() => setIsOpen(!isOpen)}
-                    className="bg-amber-500 hover:bg-amber-600 text-white rounded-full p-4 shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500"
-                    aria-label={isOpen ? "Close Chat" : "Open Chat"}
-                >
-                    {isOpen ? <X size={24} /> : <MessageSquare size={24} />}
-                </button>
-            </div>
-            {isOpen && (
-                <div className="fixed bottom-20 right-5 w-full max-w-sm h-[70vh] max-h-[600px] bg-white dark:bg-slate-900 rounded-lg shadow-2xl flex flex-col z-50 border border-slate-200 dark:border-slate-700">
-                    <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700">
-                        <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                            <Bot className="text-amber-500"/>
-                            Melotwo AI Assistant
-                        </h3>
-                        <button onClick={handleGenerateEmail} disabled={isLoading || messages.length <= 1} className="p-2 rounded-md text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed">
-                            <Mail size={18} />
-                        </button>
-                    </div>
-                    <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                        {messages.map((message) => (
-                            <div key={message.id} className={`flex items-end gap-2 ${message.role === 'user' ? 'justify-end' : ''}`}>
-                                {message.role === 'model' && <div className="flex-shrink-0 w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center text-white"><Bot size={20} /></div>}
-                                <div className={`max-w-[80%] rounded-lg p-3 ${message.role === 'user' ? 'bg-amber-500 text-white rounded-br-none' : 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-bl-none'}`}>
-                                    <p className="text-sm">{message.text}</p>
-                                    {message.sources && message.sources.length > 0 && (
-                                        <div className="mt-3 border-t border-slate-200 dark:border-slate-700 pt-2 space-y-1.5">
-                                            <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400">Sources:</h4>
-                                            {message.sources.map((source, index) => (
-                                                <a key={index} href={source.uri} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-500 hover:underline">
-                                                    <Link size={12} />
-                                                    <span className="truncate">{source.title}</span>
-                                                </a>
-                                            ))}
-                                        </div>
-                                    )}
-                                     {message.role === 'model' && message.id !== 'initial' && (
-                                        <div className="flex items-center justify-end gap-1 mt-2">
-                                            <button onClick={() => handleRating(message.id, 'up')} className={`p-1 rounded-full ${message.rating === 'up' ? 'bg-green-100 dark:bg-green-900 text-green-600' : 'text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'}`}><ThumbsUp size={14}/></button>
-                                            <button onClick={() => handleRating(message.id, 'down')} className={`p-1 rounded-full ${message.rating === 'down' ? 'bg-red-100 dark:bg-red-900 text-red-600' : 'text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'}`}><ThumbsDown size={14}/></button>
-                                        </div>
-                                    )}
-                                </div>
-                                {message.role === 'user' && <div className="flex-shrink-0 w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-400"><User size={20} /></div>}
-                            </div>
-                        ))}
-                        {isLoading && (
-                             <div className="flex items-end gap-2">
-                                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center text-white"><Bot size={20} /></div>
-                                <div className="max-w-[80%] rounded-lg p-3 bg-slate-100 dark:bg-slate-800 rounded-bl-none">
-                                    <Loader2 className="animate-spin text-amber-500" size={20} />
-                                </div>
-                             </div>
-                        )}
-                        <div ref={chatEndRef} />
-                    </div>
-                    <form onSubmit={handleSubmit} className="p-4 border-t border-slate-200 dark:border-slate-700 flex items-center gap-2">
-                        <input
-                            type="text"
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            placeholder="Ask about products or safety..."
-                            className="flex-1 w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-full focus:ring-1 focus:ring-amber-500 bg-white dark:bg-slate-800 text-sm"
-                            disabled={isLoading}
-                        />
-                        <button type="submit" disabled={isLoading || !input.trim()} className="bg-amber-500 text-white rounded-full p-2.5 hover:bg-amber-600 disabled:bg-slate-300 dark:disabled:bg-slate-600">
-                            <Send size={18} />
-                        </button>
-                    </form>
-                </div>
-            )}
-            <EmailQuoteModal 
-                isOpen={isEmailModalOpen}
-                onClose={() => setIsEmailModalOpen(false)}
-                emailContent={emailContent}
-            />
-        </>
-    );
-};
+    signInAndListen();
 
-// --- Main App Component ---
-const App: React.FC = () => {
-    const [isDarkMode, setIsDarkMode] = useState(false);
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      const currentUserId = user ? user.uid : crypto.randomUUID();
+      setFirestoreState({ db, auth, userId: currentUserId, isAuthReady: true });
+      console.log(`User ID set: ${currentUserId}`);
+    });
 
-    const [products, setProducts] = useState<Product[]>(() =>
-        PRODUCTS.map(p => ({ ...p, isLoading: false })) // Start with isLoading: false as we have stable images
-    );
+    return () => unsubscribeAuth();
+  }, []); // Run only once for initialization
 
-    // Effect to set initial theme and apply the dark class to the HTML element
-    useEffect(() => {
-        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-        setIsDarkMode(prefersDark);
-    }, []);
-
-    useEffect(() => {
-        const root = window.document.documentElement;
-        root.classList.toggle('dark', isDarkMode);
-    }, [isDarkMode]);
-
-    const toggleTheme = () => {
-        setIsDarkMode(prev => !prev);
-    };
-
-  // The dynamic fetching is a good enhancement, but we can disable it for now
-  // to ensure stability, since the main issue was broken images.
-  // The stable URLs in the PRODUCTS constant provide a solid baseline.
-  /*
+  // --- Firestore Chat/Review Listeners ---
   useEffect(() => {
-    // Dynamically fetch product details on initial load
-    const fetchAllDetails = async () => {
-        const promises = PRODUCTS.map(p => fetchProductDetails(p.name, p.description));
-        const results = await Promise.all(promises);
+    if (!firestoreDb || !userId) return;
 
-        setProducts(prevProducts => prevProducts.map((p, index) => {
-            const newDetails = results[index];
-            return {
-                ...p,
-                price: newDetails.price !== null ? newDetails.price : p.price,
-                imageUrl: newDetails.imageUrl !== null ? newDetails.imageUrl : p.imageUrl,
-                isLoading: false,
-            };
-        }));
+    // 1. Chat History Listener (Private Data)
+    const chatQuery = query(
+      collection(firestoreDb, getUserCollectionPath(userId)),
+      'chatHistory',
+      orderBy('timestamp', 'asc')
+    );
+    
+    const unsubscribeChat = onSnapshot(chatQuery, (snapshot) => {
+      const messages: ChatMessage[] = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          role: data.role || 'model',
+          text: data.text || '',
+          sources: data.sources || [],
+          rating: data.rating || null,
+        } as ChatMessage;
+      });
+      setChatHistory([
+        { id: 'initial', role: 'model', text: `Hello! I'm Melotwo AI, your assistant for SABS-certified PPE. How can I help you ensure workplace safety today?`, sources: [] },
+        ...messages
+      ]);
+    }, (error) => {
+      console.error("Error fetching chat history:", error);
+    });
+
+    // 2. Reviews Listener (Public Data)
+    const publicReviewsPath = getPublicReviewsCollectionPath();
+    const unsubscribeReviews = onSnapshot(collection(firestoreDb, publicReviewsPath), (snapshot) => {
+      const allReviews: Review[] = [];
+      snapshot.docs.forEach(doc => {
+        const data = doc.data();
+        allReviews.push({
+          id: doc.id,
+          username: data.username,
+          rating: data.rating,
+          comment: data.comment,
+          date: data.date.toDate().toISOString(),
+          productId: data.productId, // Used for merging below
+        } as Review & { productId: number });
+      });
+
+      setProducts(prevProducts => prevProducts.map(product => {
+        const productReviews = allReviews.filter(review => review.productId === product.id);
+        return { ...product, reviews: productReviews };
+      }));
+    }, (error) => {
+        console.error("Error fetching reviews:", error);
+    });
+
+
+    return () => {
+      unsubscribeChat();
+      unsubscribeReviews();
     };
+  }, [firestoreDb, userId]);
 
-    fetchAllDetails();
-  }, []);
-  */
 
-  const handleAddReview = (productId: number, reviewData: Omit<Review, 'id' | 'date'>) => {
-    setProducts(currentProducts =>
-      currentProducts.map(p => {
-        if (p.id === productId) {
-          const newReview: Review = {
-            ...reviewData,
-            id: `review-${productId}-${(p.reviews?.length || 0) + 1}`,
-            date: new Date().toISOString(),
-          };
+  // --- Data Fetching (Product Images & Prices) ---
+  useEffect(() => {
+    const loadProductDetails = async () => {
+      const updatedProducts = await Promise.all(INITIAL_PRODUCTS.map(async (p) => {
+        if (!p.isLoading) return p;
+        
+        try {
+          const { price, imageUrl } = await fetchProductDetails(p.name, p.description);
+          
+          const finalImageUrl = imageUrl || FALLBACK_IMAGE_URL(`No Image: ${p.name}`);
+          const finalPrice = price || p.price; // Keep hardcoded price if fetch fails
+          
           return {
             ...p,
-            reviews: [...(p.reviews || []), newReview],
+            price: finalPrice,
+            imageUrl: finalImageUrl,
+            isLoading: false,
+          };
+        } catch (error) {
+          console.error(`Failed to load details for ${p.name}:`, error);
+          return {
+            ...p,
+            imageUrl: FALLBACK_IMAGE_URL(`Error: ${p.name}`),
+            isLoading: false,
           };
         }
-        return p;
-      })
-    );
+      }));
+      setProducts(updatedProducts);
+    };
+
+    if (products.some(p => p.isLoading)) {
+      loadProductDetails();
+    }
+  }, []);
+
+
+  // --- Chat Logic ---
+  const handleSendMessage = useCallback(async () => {
+    if (!currentQuery.trim() || isLoading || !firestoreDb || !userId) return;
+
+    const userMessage: ChatMessage = {
+      id: crypto.randomUUID(),
+      role: 'user',
+      text: currentQuery.trim(),
+    };
+    
+    setCurrentQuery('');
+    setIsLoading(true);
+    
+    try {
+      // 1. Save User message to Firestore
+      await addDoc(collection(firestoreDb, getUserCollectionPath(userId), 'chatHistory'), {
+        ...userMessage,
+        timestamp: serverTimestamp(),
+      });
+
+      // 2. Get AI Response
+      // Get location (using dummy data for simplicity in this environment)
+      const location = { latitude: -25.7479, longitude: 28.2293 }; // Pretoria, SA
+      const response = await getAiBotResponse(userMessage.text, chatHistory, location);
+      
+      const aiMessage: ChatMessage = {
+        id: crypto.randomUUID(),
+        role: 'model',
+        text: response.text,
+        sources: response.sources,
+      };
+
+      // 3. Save AI response to Firestore
+      await addDoc(collection(firestoreDb, getUserCollectionPath(userId), 'chatHistory'), {
+        ...aiMessage,
+        timestamp: serverTimestamp(),
+      });
+
+    } catch (e) {
+      console.error("Chat error:", e);
+      setToasts(prev => [...prev, { id: crypto.randomUUID(), message: "Failed to send message. Please try again.", type: 'error' }]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentQuery, isLoading, firestoreDb, userId, chatHistory]);
+
+  const handleRating = async (messageId: string, currentRating: 'up' | 'down' | null) => {
+    if (!firestoreDb || !userId) return;
+
+    const currentMessage = chatHistory.find(msg => msg.id === messageId);
+    if (!currentMessage) return;
+
+    const newRating = currentRating === 'up' ? 'down' : (currentRating === 'down' ? null : 'up');
+    
+    try {
+      await setDoc(doc(firestoreDb, getUserCollectionPath(userId), 'chatHistory', messageId), {
+        rating: newRating,
+      }, { merge: true });
+      setToasts(prev => [...prev, { id: crypto.randomUUID(), message: `Feedback recorded: ${newRating ? newRating : 'cleared'}!`, type: 'info' }]);
+
+    } catch (error) {
+      console.error("Error updating rating:", error);
+    }
+  };
+
+  const handleClearChat = async () => {
+    if (!firestoreDb || !userId) return;
+    try {
+      const collectionRef = collection(firestoreDb, getUserCollectionPath(userId), 'chatHistory');
+      const q = query(collectionRef);
+      const snapshot = await getDocs(q);
+      
+      const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref));
+      await Promise.all(deletePromises);
+      setToasts(prev => [...prev, { id: crypto.randomUUID(), message: "Chat history cleared successfully.", type: 'success' }]);
+    } catch (error) {
+      console.error("Error clearing chat:", error);
+      setToasts(prev => [...prev, { id: crypto.randomUUID(), message: "Failed to clear chat.", type: 'error' }]);
+    }
+  };
+
+  // --- Review Logic ---
+  const handleAddReview = async (productId: number, reviewData: Omit<Review, 'id' | 'date'>) => {
+    if (!firestoreDb || !userId) {
+        setToasts(prev => [...prev, { id: crypto.randomUUID(), message: "Login required to submit review.", type: 'error' }]);
+        return;
+    }
+
+    try {
+        await addDoc(collection(firestoreDb, getPublicReviewsCollectionPath()), {
+            ...reviewData,
+            productId,
+            userId: userId, // Record which user made the review
+            date: serverTimestamp(),
+        });
+    } catch (error) {
+        console.error("Error adding review:", error);
+        setToasts(prev => [...prev, { id: crypto.randomUUID(), message: "Review submission failed.", type: 'error' }]);
+    }
   };
 
 
-  return (
-    <div className={`min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-200 transition-colors duration-300`}>
-      <Navbar onThemeToggle={toggleTheme} isDarkMode={isDarkMode} />
-      
-      <header className="bg-white dark:bg-slate-900 py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-4xl font-extrabold text-slate-900 dark:text-slate-100 sm:text-5xl md:text-6xl">
-            Your Premier Partner for <span className="text-amber-500">Certified Safety Equipment</span>
-          </h1>
-          <p className="mt-4 max-w-2xl mx-auto text-lg text-slate-600 dark:text-slate-400">
-           Equip your workforce with SABS-approved Personal Protective Equipment (PPE). Fast procurement, expert advice, and uncompromising safety standards for the mining and industrial sectors.
-          </p>
+  // --- Utility Handlers ---
+  const filteredProducts = useMemo(() => {
+    let list = products;
+    
+    if (selectedCategory) {
+      list = list.filter(p => p.category === selectedCategory);
+    }
+    
+    if (searchQuery) {
+      const searchLower = searchQuery.toLowerCase();
+      list = list.filter(p => 
+        p.name.toLowerCase().includes(searchLower) ||
+        p.description.toLowerCase().includes(searchLower) ||
+        p.category.toLowerCase().includes(searchLower) ||
+        p.sabsStandard?.toLowerCase().includes(searchLower)
+      );
+    }
+
+    return list;
+  }, [products, selectedCategory, searchQuery]);
+  
+  const scrollToBottom = () => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [chatHistory]);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+  
+  const toggleDarkMode = () => {
+    setIsDarkMode(prev => !prev);
+    document.documentElement.classList.toggle('dark');
+  };
+
+  const handleGenerateEmail = async () => {
+    setEmailQuoteModalOpen(true);
+    const draft = await generateEmailDraft(chatHistory);
+    setEmailDraft(draft);
+  }
+
+  const handleAddToast = (toast: Omit<ToastType, 'id'>) => {
+    setToasts(prev => [...prev, { id: crypto.randomUUID(), ...toast }]);
+  };
+
+
+  // --- Render Components ---
+
+  const renderProductCard = (product: Product) => {
+    const averageRating = product.reviews && product.reviews.length > 0
+      ? (product.reviews.reduce((sum, review) => sum + review.rating, 0) / product.reviews.length)
+      : 0;
+
+    return (
+      <div key={product.id} className="bg-white dark:bg-slate-800 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col border border-slate-100 dark:border-slate-700">
+        <div className="relative h-48 bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+          {product.isLoading ? (
+            <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+          ) : (
+            <img 
+              src={product.imageUrl} 
+              alt={product.name} 
+              className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+              onError={(e) => { (e.target as HTMLImageElement).src = FALLBACK_IMAGE_URL(product.name) }}
+            />
+          )}
+          {product.sabsCertified && (
+            <div className="absolute top-3 left-3 bg-green-500 text-white text-xs font-bold px-2 py-0.5 rounded-full shadow-md flex items-center gap-1">
+              <ShieldCheck size={12}/> SABS
+            </div>
+          )}
+          {product.isPrintable && (
+            <div className="absolute bottom-3 right-3 bg-blue-500/80 text-white text-xs font-bold px-2 py-0.5 rounded-full shadow-md flex items-center gap-1 backdrop-blur-sm">
+              <Printer size={12}/> Customizable
+            </div>
+          )}
+        </div>
+        <div className="p-5 flex flex-col flex-grow">
+          <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 mb-1">{product.category}</p>
+          <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-2">{product.name}</h3>
+          <p className="text-sm text-slate-600 dark:text-slate-400 mb-3 line-clamp-2">{product.description}</p>
+          
+          <div className="flex items-center space-x-2 text-sm mb-4">
+            <StarRating rating={averageRating} size={14} />
+            <span className="text-slate-700 dark:text-slate-300 font-semibold">{averageRating.toFixed(1)}</span>
+            <span className="text-slate-500 dark:text-slate-400">({product.reviews?.length || 0} reviews)</span>
+          </div>
+
+          <div className="mt-auto pt-3 border-t border-slate-100 dark:border-slate-700">
+            <div className="flex justify-between items-center mb-4">
+                <span className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">
+                    {product.price ? `R${product.price.toFixed(2)}` : 'R--.--'}
+                </span>
+                <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                    <Scale size={14} /> SABS: {product.sabsStandard || 'N/A'}
+                </span>
+            </div>
+            <div className="flex space-x-2">
+              <button 
+                className="flex-1 inline-flex items-center justify-center py-2 text-sm font-semibold rounded-lg shadow-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={() => product.isPrintable ? setCustomizationModalProduct(product) : window.open(product.affiliateUrl, '_blank')}
+                disabled={product.isLoading}
+                style={{ 
+                    backgroundColor: product.isPrintable ? '#3B82F6' : '#F59E0B', 
+                    color: 'white',
+                    hover: { backgroundColor: product.isPrintable ? '#2563EB' : '#D97706' }
+                }}
+              >
+                {product.isPrintable ? (
+                    <>Customize <Printer size={16} className="ml-2"/></>
+                ) : (
+                    <>Order Now <ShoppingCart size={16} className="ml-2"/></>
+                )}
+              </button>
+            </div>
+          </div>
+          
+          {/* Detailed Review Section - Toggled Visibility */}
+          <details className="mt-3">
+              <summary className="text-sm text-amber-600 dark:text-amber-400 font-medium cursor-pointer hover:underline flex items-center justify-between">
+                View Reviews ({product.reviews?.length || 0}) <ChevronRight size={16} className="transition-transform duration-300 group-open:rotate-90"/>
+              </summary>
+              <ProductReviews 
+                  productId={product.id} 
+                  reviews={product.reviews || []} 
+                  onAddReview={handleAddReview} 
+                  onToast={handleAddToast}
+              />
+          </details>
+        </div>
+      </div>
+    );
+  };
+
+  const renderChatView = () => (
+    <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-inner">
+      <header className="flex-shrink-0 flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 shadow-sm">
+        <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+          <Bot className="w-5 h-5 text-amber-500"/> Melotwo AI Assistant
+        </h2>
+        <div className='flex items-center space-x-3'>
+            <button 
+                onClick={handleGenerateEmail}
+                className="p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors tooltip relative group"
+                aria-label="Generate Email Draft"
+                disabled={chatHistory.length <= 1}
+            >
+                <Mail size={20} />
+                <span className="tooltip-text absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1 bg-slate-700 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+                    Generate Quote Email
+                </span>
+            </button>
+            <button 
+                onClick={handleClearChat}
+                className="p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors tooltip relative group"
+                aria-label="Clear Chat History"
+            >
+                <History size={20} />
+                <span className="tooltip-text absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1 bg-slate-700 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+                    Clear History
+                </span>
+            </button>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Placeholder for future filter and sort controls */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-            {products.map(product => (
-                <ProductCard 
-                    key={product.id}
-                    product={product}
-                    onToggleCompare={() => {}} // Placeholder
-                    isInCompare={false} // Placeholder
-                    isCompareDisabled={false} // Placeholder
-                    onAddReview={handleAddReview}
-                    onQuickView={() => {}} // Placeholder
-                />
-            ))}
+      <div className="flex-grow overflow-y-auto p-4 space-y-4">
+        {chatHistory.map(message => (
+          <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+            <div className={`max-w-3/4 p-3 rounded-xl shadow-md ${message.role === 'user' 
+              ? 'bg-amber-500 text-white rounded-br-none' 
+              : 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-tl-none border border-slate-200 dark:border-slate-700'
+            }`}>
+              <div className="flex items-center font-semibold mb-1 text-xs">
+                {message.role === 'user' ? <User size={14} className='mr-1'/> : <Bot size={14} className='mr-1 text-amber-500'/>}
+                {message.role === 'user' ? 'You' : 'Melotwo AI'}
+              </div>
+              <p className="text-sm whitespace-pre-wrap">{message.text}</p>
+              
+              {message.role === 'model' && message.sources && message.sources.length > 0 && (
+                <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+                  <h4 className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Sources:</h4>
+                  <ul className="space-y-1">
+                    {message.sources.map((source, index) => (
+                      <li key={index} className="text-xs">
+                        <Link size={10} className="inline mr-1 text-slate-500 dark:text-slate-400"/>
+                        <a href={source.uri} target="_blank" rel="noopener noreferrer" className="text-blue-500 dark:text-blue-400 hover:underline">
+                          {source.title.substring(0, 50)}...
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className='flex items-center justify-end mt-2 space-x-2'>
+                    <button 
+                      onClick={() => handleRating(message.id, message.rating)}
+                      className={`p-1 rounded-full transition-colors ${message.rating === 'up' ? 'bg-green-500 text-white' : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
+                      aria-label="Thumbs Up"
+                    >
+                      <ThumbsUp size={16} />
+                    </button>
+                    <button 
+                      onClick={() => handleRating(message.id, message.rating)}
+                      className={`p-1 rounded-full transition-colors ${message.rating === 'down' ? 'bg-red-500 text-white' : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
+                      aria-label="Thumbs Down"
+                    >
+                      <ThumbsDown size={16} />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+
+        {isLoading && (
+          <div className="flex justify-start">
+            <div className="max-w-3/4 p-3 rounded-xl rounded-tl-none bg-white dark:bg-slate-800 shadow-md border border-slate-200 dark:border-slate-700">
+              <Loader2 className="w-5 h-5 animate-spin text-amber-500" />
+            </div>
+          </div>
+        )}
+        <div ref={chatEndRef} />
+      </div>
+
+      <div className="flex-shrink-0 p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800">
+        <div className="flex space-x-3">
+          <textarea
+            value={currentQuery}
+            onChange={(e) => setCurrentQuery(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Ask about SABS standards, product specs, or safety tips..."
+            className="flex-grow p-3 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-amber-500 focus:border-amber-500 bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-slate-200 resize-none h-12 overflow-hidden"
+            rows={1}
+            disabled={isLoading}
+          />
+          <button
+            onClick={handleSendMessage}
+            disabled={isLoading || !currentQuery.trim()}
+            className="flex-shrink-0 w-12 h-12 inline-flex items-center justify-center rounded-lg bg-amber-500 text-white hover:bg-amber-600 transition-colors disabled:bg-slate-400 dark:disabled:bg-slate-600 disabled:cursor-not-allowed shadow-md"
+            aria-label="Send Message"
+          >
+            {isLoading ? <Loader2 className="w-5 h-5 animate-spin"/> : <Send size={20} />}
+          </button>
         </div>
-        <EmailCapture />
-      </main>
+        {userId && (
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 text-right">
+                User: <span className='font-mono'>{userId.substring(0, 8)}...</span>
+            </p>
+        )}
+      </div>
       
-      <AiChatBot />
-      <Footer />
+      {emailQuoteModalOpen && (
+        <EmailQuoteModal
+          isOpen={emailQuoteModalOpen}
+          onClose={() => setEmailQuoteModalOpen(false)}
+          emailContent={emailDraft}
+          onToast={handleAddToast}
+        />
+      )}
+    </div>
+  );
+
+  const renderStoreView = () => (
+    <div className="p-4 sm:p-6 lg:p-8 space-y-8 bg-slate-50 dark:bg-slate-900 min-h-full">
+      
+      {/* Search and Filter */}
+      <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center">
+        <div className="flex-grow relative">
+          <input
+            type="text"
+            placeholder="Search products by name, SABS standard, or description..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full p-3 pl-10 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-amber-500 focus:border-amber-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 shadow-sm"
+          />
+          <Search size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
+        </div>
+        <div className="flex-shrink-0">
+          <select
+            value={selectedCategory || ''}
+            onChange={(e) => setSelectedCategory(e.target.value || null)}
+            className="w-full md:w-auto p-3 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-amber-500 focus:border-amber-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 shadow-sm appearance-none pr-10"
+          >
+            <option value="">All Categories</option>
+            {PRODUCT_CATEGORIES.map(cat => (
+              <option key={cat.name} value={cat.name}>{cat.name}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Product Grid */}
+      <h2 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 border-b border-amber-500 pb-2">
+        {selectedCategory || 'All'} Safety Products ({filteredProducts.length})
+      </h2>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredProducts.length > 0 ? (
+          filteredProducts.map(renderProductCard)
+        ) : (
+          <div className="col-span-full text-center py-12 bg-white dark:bg-slate-800 rounded-xl shadow-lg border-4 border-dashed border-slate-300 dark:border-slate-700">
+            <SearchX size={48} className="mx-auto text-slate-400 mb-4"/>
+            <p className="text-xl font-semibold text-slate-600 dark:text-slate-300">No matching products found.</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">Try adjusting your search or filter settings.</p>
+          </div>
+        )}
+      </div>
+
+      {/* Customization Modal */}
+      {customizationModalProduct && (
+        <CustomizationModal
+          isOpen={!!customizationModalProduct}
+          onClose={() => setCustomizationModalProduct(null)}
+          product={customizationModalProduct}
+          onToast={handleAddToast}
+        />
+      )}
+    </div>
+  );
+
+  return (
+    <div className={`h-screen w-full flex flex-col ${isDarkMode ? 'dark' : ''} bg-slate-100 dark:bg-slate-950 font-sans`}>
+      
+      {/* Header / Navigation */}
+      <header className="flex-shrink-0 bg-white dark:bg-slate-900 shadow-md border-b border-slate-200 dark:border-slate-800">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center">
+          <div className="flex items-center space-x-6">
+            <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 flex items-center">
+              <ShieldCheck className="w-6 h-6 text-amber-500 mr-2"/> Melotwo Safety
+            </h1>
+            <nav className='hidden sm:flex space-x-4'>
+              <button 
+                onClick={() => setView('store')} 
+                className={`py-1 px-3 text-sm font-semibold rounded-full transition-colors ${view === 'store' ? 'bg-amber-500 text-white' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+              >
+                Store
+              </button>
+              <button 
+                onClick={() => setView('chat')} 
+                className={`py-1 px-3 text-sm font-semibold rounded-full transition-colors ${view === 'chat' ? 'bg-amber-500 text-white' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+              >
+                AI Assistant
+              </button>
+            </nav>
+          </div>
+          <div className="flex items-center space-x-3">
+            <button 
+              onClick={toggleDarkMode}
+              className="p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+              aria-label="Toggle Dark Mode"
+            >
+              {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+            <button 
+              className="p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+              aria-label="User Profile"
+            >
+              <UserCircle size={24} />
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content Area */}
+      <main className="flex-grow overflow-hidden flex">
+        <div className={`flex-grow overflow-y-auto ${view === 'store' ? 'block' : 'hidden md:block'}`}>
+          {renderStoreView()}
+        </div>
+        
+        <div className={`w-full md:w-96 flex-shrink-0 ${view === 'chat' ? 'block' : 'hidden md:block'}`}>
+          {renderChatView()}
+        </div>
+        
+        {/* Mobile View Toggle */}
+        <div className='fixed bottom-4 right-4 sm:hidden z-40'>
+            <button
+                onClick={() => setView(view === 'store' ? 'chat' : 'store')}
+                className='p-4 rounded-full bg-amber-500 text-white shadow-xl flex items-center space-x-2 transition-transform hover:scale-105'
+            >
+                {view === 'store' ? (
+                    <>
+                        <Bot size={24} /> 
+                        <span className='font-semibold'>Chat</span>
+                    </>
+                ) : (
+                    <>
+                        <ShoppingCart size={24} /> 
+                        <span className='font-semibold'>Store</span>
+                    </>
+                )}
+            </button>
+        </div>
+      </main>
+
+      {/* Toast Notifications */}
+      <div className="fixed bottom-4 right-4 z-[70] space-y-3">
+        {toasts.map(toast => (
+          <Toast key={toast.id} toast={toast} onClose={() => setToasts(prev => prev.filter(t => t.id !== toast.id))} />
+        ))}
+      </div>
     </div>
   );
 };
