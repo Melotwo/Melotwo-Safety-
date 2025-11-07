@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { ShieldCheck, Send, Loader2, CheckCircle } from 'lucide-react';
-import { PRODUCT_CATEGORIES } from '../constants';
+import { PRODUCT_CATEGORIES } from '../constants.ts';
 
 const Footer: React.FC = () => {
   const [email, setEmail] = useState('');
