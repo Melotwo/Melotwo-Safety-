@@ -1,4 +1,13 @@
+
 import type { LucideIcon } from 'lucide-react';
+
+export interface Review {
+  id: string;
+  username: string;
+  rating: number; // e.g., 1-5
+  comment: string;
+  date: string; // ISO 8601 date string
+}
 
 export interface Product {
   id: number;
@@ -9,6 +18,9 @@ export interface Product {
   description: string;
   imageUrl: string;
   affiliateUrl: string;
+  price?: number;
+  isPrintable?: boolean;
+  reviews?: Review[];
 }
 
 export interface ProductCategory {
@@ -27,4 +39,16 @@ export interface ChatMessage {
   role: 'user' | 'model';
   text: string;
   sources?: Source[];
+  rating?: 'up' | 'down' | null;
+}
+
+export interface EmailContent {
+  subject: string;
+  body: string;
+}
+
+export interface Toast {
+  id: string;
+  message: string;
+  type: 'warning' | 'success' | 'info' | 'error';
 }
