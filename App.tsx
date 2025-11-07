@@ -1,20 +1,20 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import Navbar from './components/Navbar';
-import Footer from './components/Footer';
-import ProductCard from './components/ProductCard';
-import AiChatBot from './components/AiChatBot';
-import ProductFilterSidebar from './components/ProductFilterSidebar';
-import ProductSortDropdown from './components/ProductSortDropdown';
-import EmailCapture from './components/EmailCapture';
-import ComparisonBar from './components/ComparisonBar';
-import ComparisonModal from './components/ComparisonModal';
-import Toast from './components/Toast';
-import ProductDetailModal from './components/ProductDetailModal';
-import { PRODUCTS, PRODUCT_CATEGORIES } from './constants';
+import Navbar from './components/Navbar.tsx';
+import Footer from './components/Footer.tsx';
+import ProductCard from './components/ProductCard.tsx';
+import AiChatBot from './components/AiChatBot.tsx';
+import ProductFilterSidebar from './components/ProductFilterSidebar.tsx';
+import ProductSortDropdown from './components/ProductSortDropdown.tsx';
+import EmailCapture from './components/EmailCapture.tsx';
+import ComparisonBar from './components/ComparisonBar.tsx';
+import ComparisonModal from './components/ComparisonModal.tsx';
+import Toast from './components/Toast.tsx';
+import ProductDetailModal from './components/ProductDetailModal.tsx';
+import { PRODUCTS, PRODUCT_CATEGORIES } from './constants.ts';
 import { SearchX } from 'lucide-react';
-import ProductSearchBar from './components/ProductSearchBar';
-import type { Product, Review, Toast as ToastType } from './types';
+import ProductSearchBar from './components/ProductSearchBar.tsx';
+import type { Product, Review, Toast as ToastType } from './types.ts';
 
 const MAX_COMPARE_ITEMS = 4;
 
