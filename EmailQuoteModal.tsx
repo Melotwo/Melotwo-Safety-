@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import type { EmailContent } from '../types';
+import type { EmailContent } from '../types.ts';
 import { X, Send, Copy, Check, Info } from 'lucide-react';
 
 interface EmailQuoteModalProps {
