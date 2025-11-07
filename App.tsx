@@ -10,7 +10,7 @@ import EmailCapture from './components/EmailCapture';
 import ComparisonBar from './components/ComparisonBar';
 import ComparisonModal from './components/ComparisonModal';
 import Toast from './components/Toast';
-import ProductDetailModal from './components/ProductDetailModal'; // Import the new modal
+import ProductDetailModal from './components/ProductDetailModal';
 import { PRODUCTS, PRODUCT_CATEGORIES } from './constants';
 import { SearchX } from 'lucide-react';
 import ProductSearchBar from './components/ProductSearchBar';
