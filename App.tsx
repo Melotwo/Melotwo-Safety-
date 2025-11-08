@@ -4,14 +4,14 @@ import { Loader2, Package, Check, Copy, Printer, FileDown, Save } from 'lucide-r
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
-import MarkdownRenderer from '@/components/MarkdownRenderer';
-import QuoteModal from '@/components/QuoteModal';
-import SavedChecklistsModal from '@/components/SavedChecklistsModal';
-import ProductCard from '@/components/ProductCard';
-import { PPE_PRODUCTS, exampleScenarios } from '@/constants';
-import { PpeProduct, SavedChecklist } from '@/types';
+import Navbar from './components/Navbar';
+import Footer from './components/Footer';
+import MarkdownRenderer from './components/MarkdownRenderer';
+import QuoteModal from './components/QuoteModal';
+import SavedChecklistsModal from './components/SavedChecklistsModal';
+import ProductCard from './components/ProductCard';
+import { PPE_PRODUCTS, exampleScenarios } from './constants';
+import { PpeProduct, SavedChecklist } from './types';
 
 
 // ========= MAIN APP COMPONENT =========
