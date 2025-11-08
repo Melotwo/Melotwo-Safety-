@@ -88,11 +88,12 @@ const App: React.FC = () => {
         - **Equipment Involved:** ${equipment || 'Not specified'}
 
         **Instructions:**
-        1.  Structure the checklist into logical sections using '##' for main headings. Include these four sections: "Hazard Assessment", "Personal Protective Equipment (PPE)", "Safe Work Procedures", and "Emergency Plan".
-        2.  Under each section, use '*' for individual checklist items.
-        3.  The language should be clear, concise, and actionable.
-        4.  In the "Personal Protective Equipment (PPE)" section, identify and list the essential PPE required.
-        5.  At the very end of the entire response, add a special marker line: "---PPE_KEYWORDS:[keyword1, keyword2, ...]---" where the keywords are simple, lowercase, singular terms for the recommended PPE (e.g., hard hat, goggles, gloves, boots).
+        1.  Structure the checklist into logical sections using '##' for main headings. The sections must be: "Hazard Assessment", "Personal Protective Equipment (PPE)", "Safe Work Procedures", "Emergency Plan", and "Post-Task Actions & Review".
+        2.  The "Post-Task Actions & Review" section should include checklist items for site cleanup, equipment storage, incident reporting, and a final point prompting a review of the safety procedures for future improvements.
+        3.  Under each section, use '*' for individual checklist items.
+        4.  The language should be clear, concise, and actionable.
+        5.  In the "Personal Protective Equipment (PPE)" section, identify and list the essential PPE required.
+        6.  At the very end of the entire response, add a special marker line: "---PPE_KEYWORDS:[keyword1, keyword2, ...]---" where the keywords are simple, lowercase, singular terms for the recommended PPE (e.g., hard hat, goggles, gloves, boots).
       `;
       
       const response = await ai.models.generateContent({
