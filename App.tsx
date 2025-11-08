@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI } from "@google/genai";
 import { Loader2, Package, Check, Copy, Printer, FileDown, Save } from 'lucide-react';
@@ -113,9 +111,26 @@ const App: React.FC = () => {
 
       setChecklist(fullText);
 
-    } catch (err: any) {
-      console.error(err);
-      setError('An error occurred while generating the checklist. Please check your connection or API key and try again.');
+    } catch (err) {
+      console.error("Error generating checklist:", err);
+      let errorMessage = 'An unexpected error occurred. Please try again later.';
+
+      if (!navigator.onLine) {
+        errorMessage = 'You appear to be offline. Please check your internet connection and try again.';
+      } else if (err instanceof Error) {
+        const lowerCaseMessage = err.message.toLowerCase();
+        if (lowerCaseMessage.includes('api key')) {
+          errorMessage = 'There is an issue with your API key. Please ensure it is configured correctly and has not expired.';
+        } else if (lowerCaseMessage.includes('quota')) {
+          errorMessage = 'You have exceeded your API usage quota. Please check your account and billing information.';
+        } else if (lowerCaseMessage.includes('blocked')) {
+          errorMessage = 'The request was blocked for safety reasons. Please try modifying your prompt.';
+        } else if (lowerCaseMessage.includes('network') || lowerCaseMessage.includes('fetch')) {
+          errorMessage = 'A network error occurred. Please check your internet connection and try again.';
+        }
+      }
+      
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
