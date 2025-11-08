@@ -1,6 +1,6 @@
 import React from 'react';
 import { Building, Factory, Wrench } from 'lucide-react';
-import { PpeProduct } from './types';
+import { PpeProduct } from '@/types';
 
 export const PPE_PRODUCTS: PpeProduct[] = [
   {
@@ -55,4 +55,3 @@ export const exampleScenarios = [
     task: 'Entering a drainage tank for routine inspection and maintenance',
     equipment: 'Gas Detector, Harness, Winch, Ventilation Fan',
   }
-];
