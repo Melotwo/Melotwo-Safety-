@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Bookmark, Eye, Trash2, ArrowLeft } from 'lucide-react';
-import { SavedChecklist } from '@/types';
+import { SavedChecklist } from '../types';
 import MarkdownRenderer from './MarkdownRenderer';
 
 const SavedChecklistsModal: React.FC<{
