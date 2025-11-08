@@ -79,8 +79,14 @@ const App: React.FC = () => {
 
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+      
+      const systemInstruction = `You are a certified health and safety expert with decades of experience in occupational safety. Your tone must be formal, professional, and authoritative. All responses must be structured as comprehensive safety checklists. At the end of every generated checklist, you MUST include the following disclaimer, formatted exactly as shown below:
+
+---
+***Disclaimer:** This checklist is AI-generated and for informational purposes only. It is not a substitute for professional safety advice. Always consult with a qualified safety professional to ensure compliance with local regulations and site-specific conditions.*`;
+
       const prompt = `
-        You are a certified health and safety expert. Create a comprehensive safety checklist for the following scenario. The output must be in markdown format.
+        Create a comprehensive safety checklist for the following scenario. The output must be in markdown format.
 
         **Scenario Details:**
         - **Industry/Environment:** ${industry}
@@ -91,14 +97,17 @@ const App: React.FC = () => {
         1.  Structure the checklist into logical sections using '##' for main headings. The sections must be: "Hazard Assessment", "Personal Protective Equipment (PPE)", "Safe Work Procedures", "Emergency Plan", and "Post-Task Actions & Review".
         2.  The "Post-Task Actions & Review" section should include checklist items for site cleanup, equipment storage, incident reporting, and a final point prompting a review of the safety procedures for future improvements.
         3.  Under each section, use '*' for individual checklist items.
-        4.  The language should be clear, concise, and actionable.
+        4.  The language must be clear, concise, and actionable.
         5.  In the "Personal Protective Equipment (PPE)" section, identify and list the essential PPE required.
-        6.  At the very end of the entire response, add a special marker line: "---PPE_KEYWORDS:[keyword1, keyword2, ...]---" where the keywords are simple, lowercase, singular terms for the recommended PPE (e.g., hard hat, goggles, gloves, boots).
+        6.  At the very end of the entire response, BEFORE the mandatory disclaimer, add a special marker line: "---PPE_KEYWORDS:[keyword1, keyword2, ...]---" where the keywords are simple, lowercase, singular terms for the recommended PPE (e.g., hard hat, goggles, gloves, boots).
       `;
       
       const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: prompt,
+        config: {
+          systemInstruction: systemInstruction,
+        }
       });
       
       let fullText = response.text;
