@@ -255,24 +255,24 @@ const App: React.FC = () => {
             </div>
             <div>
               <label htmlFor="task" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Specific Task</label>
-              <input
-                type="text"
+              <textarea
                 id="task"
                 value={task}
                 onChange={(e) => setTask(e.target.value)}
-                placeholder="e.g., Welding steel beams, Operating forklift"
-                className="mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm"
+                placeholder="e.g., Welding steel beams. You can use markdown for lists, bolding, etc."
+                rows={3}
+                className="mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm resize-y"
               />
             </div>
             <div className="md:col-span-2">
               <label htmlFor="equipment" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Equipment Involved (Optional)</label>
-              <input
-                type="text"
+              <textarea
                 id="equipment"
                 value={equipment}
                 onChange={(e) => setEquipment(e.target.value)}
-                placeholder="e.g., Arc welder, Scaffolding, Gas detector"
-                className="mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm"
+                placeholder="e.g., Arc welder, Scaffolding. You can use markdown for lists, bolding, etc."
+                rows={3}
+                className="mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm resize-y"
               />
             </div>
           </div>
