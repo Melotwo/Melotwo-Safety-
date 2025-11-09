@@ -11,6 +11,15 @@
   :root { font-family: 'Inter var', sans-serif; }
 }
 
+html {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.5) #f8fafc;
+}
+
+.dark html {
+  scrollbar-color: rgba(100, 116, 139, 0.5) var(--slate-950);
+}
+
 body {
   background-color: #f8fafc;
   background-image: radial-gradient(rgba(0, 0, 0, 0.04) 1px, transparent 0);
@@ -23,7 +32,7 @@ body {
   background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 0);
 }
 
-/* Custom scrollbar */
+/* Custom scrollbar for Webkit browsers */
 ::-webkit-scrollbar {
   width: 8px;
 }
