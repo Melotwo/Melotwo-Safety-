@@ -360,10 +360,10 @@ const App: React.FC = () => {
               </div>
             ) : checklist && (
               <>
-                <header className="flex justify-between items-start mb-6 border-b border-slate-200 dark:border-slate-700 pb-4">
+                <header className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-6 border-b border-slate-200 dark:border-slate-700 pb-4">
                   <div>
                     <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Generated Safety Checklist</h2>
-                    <p className="text-slate-500 dark:text-slate-400 max-w-lg">{industry} &raquo; {task}</p>
+                    <p className="mt-1 text-slate-500 dark:text-slate-400 max-w-lg">{industry} &raquo; {task}</p>
                   </div>
                   <div className="no-print no-print-in-pdf flex items-center space-x-2">
                      <button onClick={handleSaveChecklist} className={`p-2 rounded-full ${isSaved ? 'bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'}`}>
