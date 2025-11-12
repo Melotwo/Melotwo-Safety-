@@ -153,8 +153,10 @@ const App: React.FC = () => {
       if (ppeMatch && ppeMatch[1]) {
         const keywords = ppeMatch[1].split(',').map(k => k.trim().toLowerCase());
         setRecommendedPpe(keywords);
-        fullText = fullText.replace(/---PPE_KEYWORDS:\[(.*?)\]---/, '').trim();
       }
+      
+      // Always remove the special marker line from the text to be displayed.
+      fullText = fullText.replace(/---PPE_KEYWORDS:\[(.*?)\]---/, '').trim();
 
       setChecklist(fullText);
 
