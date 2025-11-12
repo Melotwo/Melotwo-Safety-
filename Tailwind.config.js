@@ -15,6 +15,20 @@ export default {
           500: '#f59e0b',
           600: '#d97706',
         }
+      },
+      keyframes: {
+        'toast-in': {
+          '0%': { transform: 'translateY(100%)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
+        },
+        'toast-out': {
+          '0%': { transform: 'translateY(0)', opacity: '1' },
+          '100%': { transform: 'translateY(100%)', opacity: '0' },
+        },
+      },
+      animation: {
+        'toast-in': 'toast-in 0.3s ease-out forwards',
+        'toast-out': 'toast-out 0.3s ease-in forwards',
       }
     },
   },
