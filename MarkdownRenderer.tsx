@@ -3,6 +3,20 @@ import { HardHat, AlertTriangle, ListChecks, Siren, Check, ClipboardCheck } from
 
 const MarkdownRenderer: React.FC<{ text: string }> = ({ text }) => {
   const lines = text.split('\n');
+
+  const renderLineWithFormatting = (line: string) => {
+    // This regex splits the string by ***...***, keeping the delimiter
+    const parts = line.split(/(\*\*\*.*?\*\*\*)/g);
+    return parts.map((part, index) => {
+      if (part.startsWith('***') && part.endsWith('***')) {
+        // If the part is our delimiter, render it as a strong tag
+        return <strong key={index}>{part.substring(3, part.length - 3)}</strong>;
+      }
+      // Otherwise, render it as plain text
+      return part;
+    });
+  };
+
   return (
     <div className="prose prose-slate dark:prose-invert max-w-none">
       {lines.map((line, index) => {
@@ -39,11 +53,14 @@ const MarkdownRenderer: React.FC<{ text: string }> = ({ text }) => {
           return (
             <div key={index} className="flex items-start my-2">
               <Check className="w-4 h-4 text-green-500 mr-3 mt-1 flex-shrink-0" />
-              <span>{line.substring(2)}</span>
+              <span>{renderLineWithFormatting(line.substring(2))}</span>
             </div>
           );
         }
-        return <p key={index} className="text-slate-700 dark:text-slate-300">{line}</p>;
+        if (line.trim() === '---') {
+            return <hr key={index} className="my-4 border-slate-200 dark:border-slate-700" />;
+        }
+        return <p key={index} className="text-slate-700 dark:text-slate-300">{renderLineWithFormatting(line)}</p>;
       })}
     </div>
   );
