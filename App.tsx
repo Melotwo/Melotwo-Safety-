@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI } from "@google/genai";
-import { Loader2, Package, Check, Copy, Printer, FileDown, Save, AlertTriangle } from 'lucide-react';
+import { Loader2, Package, Check, Copy, Printer, FileDown, Save, AlertTriangle, ClipboardCheck } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -10,6 +10,7 @@ import MarkdownRenderer from './components/MarkdownRenderer';
 import QuoteModal from './components/QuoteModal';
 import SavedChecklistsModal from './components/SavedChecklistsModal';
 import ProductCard from './components/ProductCard';
+import Toast from './components/Toast';
 import { PPE_PRODUCTS, exampleScenarios } from './constants';
 import { PpeProduct, SavedChecklist } from './types';
 
@@ -55,9 +56,10 @@ const App: React.FC = () => {
   const [recommendedPpe, setRecommendedPpe] = useState<string[]>([]);
   const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<PpeProduct | null>(null);
-  const [isSaved, setIsSaved] = useState(false);
   const [savedChecklists, setSavedChecklists] = useState<SavedChecklist[]>([]);
   const [isSavedModalOpen, setIsSavedModalOpen] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+
 
   const checklistRef = useRef<HTMLDivElement>(null);
 
@@ -95,6 +97,13 @@ const App: React.FC = () => {
     setEquipment(scenario.equipment);
   };
 
+  const showToast = (message: string) => {
+    setToastMessage(message);
+    setTimeout(() => {
+      setToastMessage('');
+    }, 3000);
+  }
+
   const generateChecklist = async () => {
     if (!industry || !task) {
       setError('Please fill in at least the Industry/Environment and Task fields.');
@@ -104,7 +113,6 @@ const App: React.FC = () => {
     setError(null);
     setChecklist(null);
     setRecommendedPpe([]);
-    setIsSaved(false);
 
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
@@ -179,9 +187,10 @@ const App: React.FC = () => {
     if (checklist && checklistRef.current) {
       const textToCopy = checklistRef.current.innerText;
       navigator.clipboard.writeText(textToCopy).then(() => {
-        alert('Checklist copied to clipboard!');
+        showToast('Checklist copied to clipboard!');
       }).catch(err => {
         console.error('Failed to copy text: ', err);
+        showToast('Failed to copy checklist.');
       });
     }
   };
@@ -191,16 +200,11 @@ const App: React.FC = () => {
   const handleExportPdf = async () => {
     const checklistElement = document.getElementById('checklist-content');
     if (!checklistElement) return;
-
-    const actionButtons = checklistElement.querySelector('.no-print-in-pdf');
-    if (actionButtons) actionButtons.classList.add('hidden');
     
     const canvas = await html2canvas(checklistElement, { 
       scale: 2,
       backgroundColor: isDarkMode ? '#020617' : '#ffffff',
     });
-
-    if (actionButtons) actionButtons.classList.remove('hidden');
 
     const imgData = canvas.toDataURL('image/png');
     const pdf = new jsPDF('p', 'mm', 'a4');
@@ -248,8 +252,7 @@ const App: React.FC = () => {
     setSavedChecklists(updatedChecklists);
     localStorage.setItem('savedChecklists', JSON.stringify(updatedChecklists));
     
-    setIsSaved(true);
-    setTimeout(() => setIsSaved(false), 2000);
+    showToast('Checklist saved!');
   };
 
   const handleDeleteChecklist = (id: number) => {
@@ -257,6 +260,7 @@ const App: React.FC = () => {
         const updatedChecklists = savedChecklists.filter(c => c.id !== id);
         setSavedChecklists(updatedChecklists);
         localStorage.setItem('savedChecklists', JSON.stringify(updatedChecklists));
+        showToast('Checklist deleted.');
     }
   };
 
@@ -289,7 +293,7 @@ const App: React.FC = () => {
                 value={industry}
                 onChange={(e) => setIndustry(e.target.value)}
                 placeholder="e.g., Construction Site, Warehouse"
-                className="mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm"
+                className="mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm transition-colors"
               />
             </div>
             <div>
@@ -300,7 +304,7 @@ const App: React.FC = () => {
                 onChange={(e) => setTask(e.target.value)}
                 placeholder="e.g., Welding steel beams. You can use markdown for lists, bolding, etc."
                 rows={3}
-                className="mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm resize-y"
+                className="mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm resize-y transition-colors"
               />
             </div>
             <div className="md:col-span-2">
@@ -311,7 +315,7 @@ const App: React.FC = () => {
                 onChange={(e) => setEquipment(e.target.value)}
                 placeholder="e.g., Arc welder, Scaffolding. You can use markdown for lists, bolding, etc."
                 rows={3}
-                className="mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm resize-y"
+                className="mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm resize-y transition-colors"
               />
             </div>
           </div>
@@ -319,7 +323,7 @@ const App: React.FC = () => {
             <button
               onClick={generateChecklist}
               disabled={isLoading}
-              className="w-full flex items-center justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-amber-500 hover:bg-amber-600 focus:outline-none disabled:bg-amber-300 dark:disabled:bg-amber-800 dark:disabled:text-slate-400"
+              className="w-full flex items-center justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-amber-500 hover:bg-amber-600 focus:outline-none disabled:bg-amber-300 dark:disabled:bg-amber-800 dark:disabled:text-slate-400 transition-all transform hover:scale-[1.01] focus:scale-[1.01]"
             >
               {isLoading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
               {isLoading ? 'Generating Checklist...' : 'Generate Checklist'}
@@ -334,7 +338,7 @@ const App: React.FC = () => {
                 <button
                   key={scenario.title}
                   onClick={() => handleExampleClick(scenario)}
-                  className="p-4 bg-white dark:bg-slate-800/50 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700/50 hover:border-amber-500 dark:hover:border-amber-500 hover:shadow-md transition-all text-center"
+                  className="p-4 bg-white dark:bg-slate-800/50 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700/50 hover:border-amber-500 dark:hover:border-amber-500 hover:shadow-md transition-all text-center transform hover:-translate-y-1"
                 >
                   {scenario.icon}
                   <p className="font-semibold text-slate-800 dark:text-slate-200">{scenario.title}</p>
@@ -365,14 +369,14 @@ const App: React.FC = () => {
                     <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Generated Safety Checklist</h2>
                     <p className="mt-1 text-slate-500 dark:text-slate-400 max-w-lg">{industry} &raquo; {task}</p>
                   </div>
-                  <div className="no-print no-print-in-pdf flex items-center space-x-2">
-                     <button onClick={handleSaveChecklist} className={`p-2 rounded-full ${isSaved ? 'bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'}`}>
-                        {isSaved ? <Check size={18}/> : <Save size={18} />}
-                        <span className="sr-only">{isSaved ? 'Saved!' : 'Save'}</span>
+                  <div className="no-print print:hidden flex items-center space-x-2">
+                     <button onClick={handleSaveChecklist} title="Save Checklist" className="p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700">
+                        <Save size={18} />
+                        <span className="sr-only">Save</span>
                      </button>
-                    <button onClick={handleCopy} className="p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"><Copy size={18} /><span className="sr-only">Copy</span></button>
-                    <button onClick={handleExportPdf} className="p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"><FileDown size={18} /><span className="sr-only">Export PDF</span></button>
-                    <button onClick={handlePrint} className="p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"><Printer size={18} /><span className="sr-only">Print</span></button>
+                    <button onClick={handleCopy} title="Copy to Clipboard" className="p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"><Copy size={18} /><span className="sr-only">Copy</span></button>
+                    <button onClick={handleExportPdf} title="Export as PDF" className="p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"><FileDown size={18} /><span className="sr-only">Export PDF</span></button>
+                    <button onClick={handlePrint} title="Print Checklist" className="p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"><Printer size={18} /><span className="sr-only">Print</span></button>
                   </div>
                 </header>
                 <MarkdownRenderer text={checklist} />
@@ -403,6 +407,7 @@ const App: React.FC = () => {
 
       <QuoteModal isOpen={isQuoteModalOpen} onClose={closeQuoteModal} product={selectedProduct} />
       <SavedChecklistsModal isOpen={isSavedModalOpen} onClose={() => setIsSavedModalOpen(false)} savedChecklists={savedChecklists} onDelete={handleDeleteChecklist}/>
+      <Toast message={toastMessage} />
     </div>
   );
 };
