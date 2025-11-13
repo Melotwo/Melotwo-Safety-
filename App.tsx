@@ -4,18 +4,18 @@ import { Loader2, Package, Save, AlertTriangle, ShieldCheck, Printer, FileDown, 
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
-import Navbar from './components/Navbar';
-import Footer from './components/Footer';
-import MarkdownRenderer from './components/MarkdownRenderer';
-import QuoteModal from './components/QuoteModal';
-import SavedChecklistsModal from './components/SavedChecklistsModal';
-import ProductCard from './components/ProductCard';
-import Toast from './components/Toast';
-import AiChatBot from './components/AiChatBot';
-import QrCodeModal from './components/QrCodeModal';
-import { PPE_PRODUCTS, exampleScenarios } from './constants';
-import { PpeProduct, SavedChecklist, ErrorState, ValidationErrors } from './types';
-import { getApiErrorState } from './services/errorHandler';
+import Navbar from '/src/components/Navbar.tsx';
+import Footer from '/src/components/Footer.tsx';
+import MarkdownRenderer from '/src/components/MarkdownRenderer.tsx';
+import QuoteModal from '/src/components/QuoteModal.tsx';
+import SavedChecklistsModal from '/src/components/SavedChecklistsModal.tsx';
+import ProductCard from '/src/components/ProductCard.tsx';
+import Toast from '/src/components/Toast.tsx';
+import AiChatBot from '/src/components/AiChatBot.tsx';
+import QrCodeModal from '/src/components/QrCodeModal.tsx';
+import { PPE_PRODUCTS, exampleScenarios } from '/src/constants.ts';
+import { PpeProduct, SavedChecklist, ErrorState, ValidationErrors } from '/src/types.ts';
+import { getApiErrorState } from '/src/services/errorHandler.ts';
 
 
 const LOADING_MESSAGES = [
