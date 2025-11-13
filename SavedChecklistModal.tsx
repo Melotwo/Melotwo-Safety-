@@ -10,6 +10,8 @@ const SavedChecklistsModal: React.FC<{
   onDelete: (id: number) => void;
 }> = ({ isOpen, onClose, savedChecklists, onDelete }) => {
   const [viewingChecklist, setViewingChecklist] = useState<SavedChecklist | null>(null);
+  // Fix: Add state to manage checked items for the viewed checklist.
+  const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
   const modalRef = useRef<HTMLDivElement>(null);
   const triggerElementRef = useRef<HTMLElement | null>(null);
 
@@ -60,7 +62,22 @@ const SavedChecklistsModal: React.FC<{
     }
   }, [isOpen]);
 
+  useEffect(() => {
+    // When a new checklist is viewed, reset the checked items for it.
+    setCheckedItems(new Set());
+  }, [viewingChecklist]);
+
   if (!isOpen) return null;
+
+  const toggleItem = (key: string) => {
+    const newChecked = new Set(checkedItems);
+    if (newChecked.has(key)) {
+      newChecked.delete(key);
+    } else {
+      newChecked.add(key);
+    }
+    setCheckedItems(newChecked);
+  };
 
   return (
     <div role="dialog" aria-modal="true" aria-labelledby="saved-modal-title" className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -82,7 +99,8 @@ const SavedChecklistsModal: React.FC<{
         </div>
         <div className="flex-grow overflow-y-auto p-6">
           {viewingChecklist ? (
-            <MarkdownRenderer text={viewingChecklist.content} />
+            // Fix: Pass the required checkedItems and onToggleItem props.
+            <MarkdownRenderer text={viewingChecklist.content} checkedItems={checkedItems} onToggleItem={toggleItem} />
           ) : (
             savedChecklists.length > 0 ? (
               <ul className="space-y-3">
