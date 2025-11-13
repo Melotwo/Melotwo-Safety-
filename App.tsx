@@ -35,7 +35,6 @@ if (!ai) {
 
 // ========= MAIN APP COMPONENT =========
 const App: React.FC = () => {
-  // FIX: Per @google/genai guidelines, UI for API key configuration has been removed.
   // The application assumes the API key is correctly configured in the environment.
 
   const [industry, setIndustry] = useState('');
@@ -181,7 +180,6 @@ const App: React.FC = () => {
                 <>
                     There appears to be a problem with the API key. Please try the following:
                     <ul className="list-disc list-inside mt-2 text-sm">
-                        {/* FIX: Corrected malformed `code` tag which caused a JSX parsing error. */}
                         <li>Verify the <code>VITE_API_KEY</code> is set correctly in your hosting environment (e.g., Vercel, Netlify).</li>
                         <li>Ensure the key is valid and has not expired in your Google AI Studio dashboard.</li>
                         <li>Check if billing is enabled for your project if you are on a paid plan.</li>
@@ -332,31 +330,29 @@ const App: React.FC = () => {
                 id="task"
                 value={task}
                 onChange={(e) => setTask(e.target.value)}
-                placeholder="e.g., Welding steel beams. You can use markdown for lists, bolding, etc."
-                rows={3}
+                placeholder="e.g., Welding steel beams"
+                rows={1}
                 className="mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm resize-y transition-colors"
               />
             </div>
             <div className="md:col-span-2">
               <label htmlFor="equipment" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Equipment Involved (Optional)</label>
-              <textarea
+              <input
                 id="equipment"
                 value={equipment}
                 onChange={(e) => setEquipment(e.target.value)}
-                placeholder="e.g., Arc welder, Scaffolding. You can use markdown for lists, bolding, etc."
-                rows={3}
-                className="mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm resize-y transition-colors"
+                placeholder="e.g., Arc welder, Scaffolding"
+                className="mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm transition-colors"
               />
             </div>
             <div className="md:col-span-2">
               <label htmlFor="details" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Specific Details (e.g., location, conditions)</label>
-              <textarea
+              <input
                 id="details"
                 value={specificDetails}
                 onChange={(e) => setSpecificDetails(e.target.value)}
                 placeholder="e.g., Outdoors, rainy conditions, working at height"
-                rows={3}
-                className="mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm resize-y transition-colors"
+                className="mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm transition-colors"
               />
             </div>
           </div>
