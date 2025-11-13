@@ -1,67 +1,72 @@
 import React from 'react';
-import { HardHat, AlertTriangle, ListChecks, Siren, Check, ClipboardCheck } from 'lucide-react';
 
 const MarkdownRenderer: React.FC<{ text: string }> = ({ text }) => {
-  const lines = text.split('\n');
+  const elements: React.ReactNode[] = [];
+  // Defensive check in case text is not a string
+  const lines = typeof text === 'string' ? text.split('\n') : [];
+  let currentList: React.ReactNode[] = [];
 
-  const renderLineWithFormatting = (line: string) => {
-    // This regex splits the string by ***...***, keeping the delimiter
-    const parts = line.split(/(\*\*\*.*?\*\*\*)/g);
+  const parseInline = (line: string): React.ReactNode => {
+    // Regex to find ***word*** (bold+italic), **word** (bold), and *word* (italic)
+    const parts = line.split(/(\*\*\*.*?\*\*\*|\*\*.*?\*\*|\*.*?\*)/g);
     return parts.map((part, index) => {
       if (part.startsWith('***') && part.endsWith('***')) {
-        // If the part is our delimiter, render it as a strong tag
-        return <strong key={index}>{part.substring(3, part.length - 3)}</strong>;
+        return <strong key={index}><em className="font-semibold">{part.slice(3, -3)}</em></strong>;
       }
-      // Otherwise, render it as plain text
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={index} className="font-semibold text-slate-900 dark:text-slate-100">{part.slice(2, -2)}</strong>;
+      }
+      if (part.startsWith('*') && part.endsWith('*')) {
+        return <em key={index}>{part.slice(1, -1)}</em>;
+      }
       return part;
     });
   };
 
+  const flushList = () => {
+    if (currentList.length > 0) {
+      elements.push(
+        <ul key={`ul-${elements.length}`} className="space-y-3 list-none pl-2 mb-4">
+          {currentList}
+        </ul>
+      );
+      currentList = [];
+    }
+  };
+
+  lines.forEach((line, i) => {
+    if (line.startsWith('## ')) {
+      flushList();
+      elements.push(
+        <h2 key={i} className="text-xl font-bold mt-6 mb-3 text-slate-800 dark:text-slate-200 border-b border-slate-200 dark:border-slate-700 pb-2">
+          {parseInline(line.substring(3))}
+        </h2>
+      );
+    } else if (line.trim().startsWith('* ')) {
+      currentList.push(
+        <li key={i} className="flex items-start text-slate-700 dark:text-slate-300">
+          <span className="mr-3 mt-1.5 block h-2 w-2 flex-shrink-0 rounded-full bg-amber-500"></span>
+          <span>{parseInline(line.trim().substring(2))}</span>
+        </li>
+      );
+    } else if (line.trim() === '---') {
+      flushList();
+      elements.push(<hr key={i} className="my-6 border-slate-200 dark:border-slate-700" />);
+    } else if (line.trim().length > 0) {
+      flushList();
+      elements.push(
+        <p key={i} className="mb-4 text-slate-600 dark:text-slate-400">
+          {parseInline(line)}
+        </p>
+      );
+    }
+  });
+
+  flushList(); // Flush any remaining list items
+
   return (
     <div className="prose prose-slate dark:prose-invert max-w-none">
-      {lines.map((line, index) => {
-        if (line.startsWith('### ')) {
-          return <h3 key={index} className="font-semibold text-lg mt-4 mb-2">{line.substring(4)}</h3>;
-        }
-        if (line.startsWith('## ')) {
-          const title = line.substring(3).trim();
-          const lowerCaseTitle = title.toLowerCase();
-          let icon = null;
-
-          if (lowerCaseTitle.includes('personal protective equipment')) {
-            icon = <HardHat className="w-5 h-5 mr-3 text-slate-500 dark:text-slate-400 flex-shrink-0" />;
-          } else if (lowerCaseTitle.includes('hazard assessment')) {
-            icon = <AlertTriangle className="w-5 h-5 mr-3 text-slate-500 dark:text-slate-400 flex-shrink-0" />;
-          } else if (lowerCaseTitle.includes('safe work procedure')) {
-            icon = <ListChecks className="w-5 h-5 mr-3 text-slate-500 dark:text-slate-400 flex-shrink-0" />;
-          } else if (lowerCaseTitle.includes('emergency plan')) {
-            icon = <Siren className="w-5 h-5 mr-3 text-slate-500 dark:text-slate-400 flex-shrink-0" />;
-          } else if (lowerCaseTitle.includes('post-task actions')) {
-            icon = <ClipboardCheck className="w-5 h-5 mr-3 text-slate-500 dark:text-slate-400 flex-shrink-0" />;
-          }
-          
-          return (
-             <div key={index} className="border-b border-slate-200 dark:border-slate-700 mt-6 mb-3 pb-2">
-                <div className="flex items-center">
-                    {icon}
-                    <h2 className="font-bold text-xl">{title}</h2>
-                </div>
-            </div>
-          )
-        }
-        if (line.startsWith('* ')) {
-          return (
-            <div key={index} className="flex items-start my-2">
-              <Check className="w-4 h-4 text-green-500 mr-3 mt-1 flex-shrink-0" />
-              <span>{renderLineWithFormatting(line.substring(2))}</span>
-            </div>
-          );
-        }
-        if (line.trim() === '---') {
-            return <hr key={index} className="my-4 border-slate-200 dark:border-slate-700" />;
-        }
-        return <p key={index} className="text-slate-700 dark:text-slate-300">{renderLineWithFormatting(line)}</p>;
-      })}
+        {elements}
     </div>
   );
 };
