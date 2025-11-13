@@ -1,6 +1,6 @@
 import React from 'react';
 import { Building, Factory, Wrench } from 'lucide-react';
-import { PpeProduct } from './types';
+import { PpeProduct } from '/src/types.ts';
 
 export const PPE_PRODUCTS: PpeProduct[] = [
   {
