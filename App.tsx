@@ -4,6 +4,7 @@ import { Loader2, Package, Save, AlertTriangle, ShieldCheck, Printer, FileDown, 
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
+// Fix: Use relative paths for module imports to resolve module not found errors.
 import Navbar from './components/Navbar.tsx';
 import Footer from './components/Footer.tsx';
 import MarkdownRenderer from './components/MarkdownRenderer.tsx';
