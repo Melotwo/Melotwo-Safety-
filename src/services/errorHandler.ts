@@ -22,7 +22,6 @@ export const getApiErrorState = (err: unknown): ErrorState => {
       if (lowerCaseMessage.includes('api key') || lowerCaseMessage.includes('permission denied')) {
           errorState = {
               title: 'API Key or Permission Issue',
-              // FIX: Replaced JSX with React.createElement to be compatible with .ts files. JSX syntax is only allowed in .tsx files.
               message: (
                 React.createElement(React.Fragment, null,
                   React.createElement("p", null, "There seems to be an issue with your API key configuration. Please take the following steps:"),
@@ -30,7 +29,7 @@ export const getApiErrorState = (err: unknown): ErrorState => {
                     React.createElement("li", null,
                       React.createElement("strong", null, "Verify Key:"),
                       " Ensure your API key is correct and has been added to the server's environment variables (",
-                      React.createElement("code", null, "VITE_API_KEY"),
+                      React.createElement("code", { className: "text-xs bg-red-100 dark:bg-red-900/50 p-1 rounded" }, "VITE_API_KEY"),
                       ")."
                     ),
                     React.createElement("li", null,
@@ -50,24 +49,39 @@ export const getApiErrorState = (err: unknown): ErrorState => {
               title: 'API Quota Exceeded',
               message: 'You have exceeded your request limit for the AI service. Please check your usage and billing details in your Google Cloud dashboard or wait before trying again.',
           };
+      } else if (lowerCaseMessage.includes('blocked')) {
+          errorState = {
+              title: 'Content Moderation Error',
+              message: 'The request was blocked by the AI\'s safety filters. This can happen if the prompt is flagged as potentially harmful. Please try rephrasing your request.',
+          };
       } else if (lowerCaseMessage.includes('fetch') || lowerCaseMessage.includes('network')) {
           errorState = {
               title: 'Network Connection Error',
               message: 'Failed to connect to the AI service. Please check your internet connection and any firewall settings, then try again.',
           };
-      } else if (lowerCaseMessage.includes('malformed')) {
+      } else if (lowerCaseMessage.includes('malformed') || lowerCaseMessage.includes('400') || lowerCaseMessage.includes('bad request')) {
           errorState = {
               title: 'Invalid Request',
-              message: 'The data sent to the AI service was malformed. This could be due to a temporary issue. Please try rephrasing your inputs or try again later.',
+              message: 'The data sent to the AI service was invalid. This could be due to a temporary issue or incorrect input format. Please check your inputs or try again later.',
+          };
+      } else if (lowerCaseMessage.includes('500') || lowerCaseMessage.includes('server error') || lowerCaseMessage.includes('internal error')) {
+           errorState = {
+              title: 'AI Service Error',
+              message: 'The AI service encountered an internal error and could not complete your request. This is likely a temporary issue. Please try again in a few moments.',
           };
       } else if (lowerCaseMessage.includes('resource has been exhausted')) {
           errorState = {
               title: 'Resource Limit Reached',
               message: 'The model has reached its resource limit for this request. Please try again with a shorter or less complex prompt.',
           };
+      } else {
+        // Fallback for other specific errors
+        errorState = {
+            title: 'An Unexpected Error Occurred',
+            message: `Details: "${err.message}". Please try again.`,
+        };
       }
     }
     
-    // FIX: Added a return statement to ensure the function always returns a value as per its type signature.
     return errorState;
 };
