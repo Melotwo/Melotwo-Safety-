@@ -11,6 +11,8 @@ import QuoteModal from './components/QuoteModal';
 import SavedChecklistsModal from './components/SavedChecklistsModal';
 import ProductCard from './components/ProductCard';
 import Toast from './components/Toast';
+import AiChatBot from './components/AiChatBot';
+import QrCodeModal from './components/QrCodeModal';
 import { PPE_PRODUCTS, exampleScenarios } from './constants';
 import { PpeProduct, SavedChecklist } from './types';
 
@@ -48,6 +50,7 @@ const App: React.FC = () => {
   const [selectedProduct, setSelectedProduct] = useState<PpeProduct | null>(null);
   const [savedChecklists, setSavedChecklists] = useState<SavedChecklist[]>([]);
   const [isSavedModalOpen, setIsSavedModalOpen] = useState(false);
+  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [loadingMessage, setLoadingMessage] = useState(LOADING_MESSAGES[0]);
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
@@ -291,7 +294,13 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans transition-colors duration-300">
-      <Navbar onThemeToggle={toggleTheme} isDarkMode={isDarkMode} onOpenSaved={() => setIsSavedModalOpen(true)} savedCount={savedChecklists.length}/>
+      <Navbar 
+        onThemeToggle={toggleTheme} 
+        isDarkMode={isDarkMode} 
+        onOpenSaved={() => setIsSavedModalOpen(true)} 
+        savedCount={savedChecklists.length}
+        onOpenQrCode={() => setIsQrModalOpen(true)}
+      />
 
       <main className="max-w-4xl mx-auto px-4 py-8 sm:py-12">
         <header className="text-center mb-10 animate-slide-in">
@@ -451,8 +460,10 @@ const App: React.FC = () => {
       
       <Footer />
 
+      <AiChatBot />
       <QuoteModal isOpen={isQuoteModalOpen} onClose={() => setIsQuoteModalOpen(false)} product={selectedProduct} />
       <SavedChecklistsModal isOpen={isSavedModalOpen} onClose={() => setIsSavedModalOpen(false)} savedChecklists={savedChecklists} onDelete={handleDeleteChecklist}/>
+      <QrCodeModal isOpen={isQrModalOpen} onClose={() => setIsQrModalOpen(false)} />
       <Toast message={toastMessage} onDismiss={() => setToastMessage('')}/>
     </div>
   );
