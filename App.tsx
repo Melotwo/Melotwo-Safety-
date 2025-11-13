@@ -15,11 +15,20 @@ import { PPE_PRODUCTS, exampleScenarios } from './constants';
 import { PpeProduct, SavedChecklist } from './types';
 
 
+// ========= TYPES =========
+interface ErrorState {
+  title: string;
+  message: string | React.ReactNode;
+}
+
+// Vite exposes environment variables prefixed with `VITE_` on the `import.meta.env` object.
+const apiKey = import.meta.env.VITE_API_KEY;
+
+
 // ========= MAIN APP COMPONENT =========
 const App: React.FC = () => {
   // Before rendering the app, check if the API key is available.
-  // Vite replaces `process.env.API_KEY` at build time. If it's not set in the Vercel environment, it will be undefined.
-  if (!process.env.API_KEY) {
+  if (!apiKey) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center p-4">
           <div className="max-w-2xl w-full bg-white dark:bg-slate-900 p-8 rounded-xl shadow-lg border border-red-500/50 text-center">
@@ -29,17 +38,20 @@ const App: React.FC = () => {
                   The Gemini API key is missing. This application cannot function without it.
               </p>
               <div className="mt-6 text-left bg-slate-100 dark:bg-slate-800 p-4 rounded-lg">
-                  <h2 className="font-semibold text-slate-800 dark:text-slate-200">How to fix this on Vercel:</h2>
+                  <h2 className="font-semibold text-slate-800 dark:text-slate-200">How to fix this:</h2>
                   <ol className="list-decimal list-inside mt-2 space-y-2 text-sm text-slate-700 dark:text-slate-300">
-                      <li>Go to your project dashboard on <strong>Vercel</strong>.</li>
-                      <li>Navigate to <strong>Settings</strong> &rarr; <strong>Environment Variables</strong>.</li>
-                      <li>Add a new variable with the name <code className="bg-slate-200 dark:bg-slate-700 font-mono p-1 rounded">API_KEY</code>.</li>
-                      <li>Paste your Gemini API key into the value field. Ensure it is set for all environments (Production, Preview, Development).</li>
-                      <li>Go to the <strong>Deployments</strong> tab and trigger a <strong>Redeploy</strong> of your latest commit.</li>
+                      <li>Go to your project dashboard on your hosting provider (e.g., <strong>Vercel</strong>, <strong>Netlify</strong>).</li>
+                      <li>Navigate to your site's <strong>Settings</strong>, then find <strong>Environment Variables</strong> (it might be under "Build & deploy").</li>
+                      <li>Add a new variable with the name <code className="bg-slate-200 dark:bg-slate-700 font-mono p-1 rounded">VITE_API_KEY</code>.</li>
+                      <li>Paste your Gemini API key into the value field.</li>
+                      <li>Trigger a <strong>new deploy</strong> of your site to apply the change.</li>
                   </ol>
+                  <p className="mt-3 text-xs text-slate-600 dark:text-slate-400">
+                      <strong>Note:</strong> For local development, create a file named <code className="bg-slate-200 dark:bg-slate-700 font-mono p-1 rounded">.env.local</code> in the root of your project and add <code className="bg-slate-200 dark:bg-slate-700 font-mono p-1 rounded">VITE_API_KEY=YOUR_API_KEY</code> to it.
+                  </p>
               </div>
                <p className="mt-4 text-xs text-slate-500">
-                  This message is only shown when the API key is not configured during the build process. Once set correctly, the application will load.
+                  This message is only shown when the API key is not configured.
               </p>
           </div>
       </div>
@@ -50,7 +62,7 @@ const App: React.FC = () => {
   const [task, setTask] = useState('');
   const [equipment, setEquipment] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ErrorState | null>(null);
   const [checklist, setChecklist] = useState<string | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [recommendedPpe, setRecommendedPpe] = useState<string[]>([]);
@@ -106,7 +118,10 @@ const App: React.FC = () => {
 
   const generateChecklist = async () => {
     if (!industry || !task) {
-      setError('Please fill in at least the Industry/Environment and Task fields.');
+      setError({
+        title: 'Missing Information',
+        message: 'Please fill in at least the Industry/Environment and Task fields to generate a checklist.',
+      });
       return;
     }
     setIsLoading(true);
@@ -115,7 +130,7 @@ const App: React.FC = () => {
     setRecommendedPpe([]);
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+      const ai = new GoogleGenAI({ apiKey: apiKey as string });
       
       const systemInstruction = `Act as a certified safety inspector who is meticulous and thorough. Emphasize the importance of following every step precisely. You are a certified health and safety expert with decades of experience in occupational safety. Your tone must be formal, professional, and authoritative. All responses must be structured as comprehensive safety checklists. At the end of every generated checklist, you MUST include the following disclaimer, formatted exactly as shown below:
 
@@ -162,24 +177,51 @@ const App: React.FC = () => {
 
     } catch (err) {
       console.error("Error generating checklist:", err);
-      let errorMessage = 'An unexpected error occurred. Please try again later.';
+      let errorState: ErrorState = {
+        title: 'An Unexpected Error Occurred',
+        message: 'Something went wrong. Please try again later. If the problem persists, check the console for more details.',
+      };
 
       if (!navigator.onLine) {
-        errorMessage = 'You appear to be offline. Please check your internet connection and try again.';
+        errorState = {
+            title: 'Network Connection Lost',
+            message: 'You appear to be offline. Please check your internet connection and try again.',
+        };
       } else if (err instanceof Error) {
         const lowerCaseMessage = err.message.toLowerCase();
         if (lowerCaseMessage.includes('api key')) {
-          errorMessage = 'There is an issue with your API key. Please ensure it is configured correctly and has not expired.';
+          errorState = {
+            title: 'API Key Issue',
+            message: (
+                <>
+                    There appears to be a problem with the API key. Please try the following:
+                    <ul className="list-disc list-inside mt-2 text-sm">
+                        <li>Verify the <code>VITE_API_KEY</code> is set correctly in your hosting environment (e.g., Vercel, Netlify).</li>
+                        <li>Ensure the key is valid and has not expired in your Google AI Studio dashboard.</li>
+                        <li>Check if billing is enabled for your project if you are on a paid plan.</li>
+                    </ul>
+                </>
+            )
+          };
         } else if (lowerCaseMessage.includes('quota')) {
-          errorMessage = 'You have exceeded your API usage quota. Please check your account and billing information.';
+          errorState = {
+            title: 'API Quota Exceeded',
+            message: 'You have exceeded your usage quota for the Gemini API. Please check your account dashboard for details on usage limits and billing.',
+          };
         } else if (lowerCaseMessage.includes('blocked')) {
-          errorMessage = 'The request was blocked for safety reasons. Please try modifying your prompt.';
+          errorState = {
+            title: 'Content Blocked',
+            message: 'Your request was blocked due to safety policies. Please modify your input and try again. Avoid submitting sensitive or inappropriate content.',
+          };
         } else if (lowerCaseMessage.includes('network') || lowerCaseMessage.includes('fetch')) {
-          errorMessage = 'A network error occurred. Please check your internet connection and try again.';
+          errorState = {
+            title: 'Network Error',
+            message: 'A network error occurred while communicating with the API. Please check your internet connection and firewall settings, then try again.',
+          };
         }
       }
       
-      setError(errorMessage);
+      setError(errorState);
     } finally {
       setIsLoading(false);
     }
@@ -350,9 +392,18 @@ const App: React.FC = () => {
         </section>
 
         {error && (
-          <div className="mt-8 p-4 bg-red-50 dark:bg-red-900/50 border-l-4 border-red-400 dark:border-red-600 text-red-700 dark:text-red-200 rounded-r-lg">
-            <p className="font-bold">Error</p>
-            <p>{error}</p>
+          <div className="mt-8 p-4 bg-red-50 dark:bg-red-900/50 border border-red-200 dark:border-red-500/30 rounded-lg" role="alert">
+            <div className="flex">
+                <div className="flex-shrink-0">
+                    <AlertTriangle className="h-5 w-5 text-red-500 dark:text-red-400" aria-hidden="true" />
+                </div>
+                <div className="ml-3">
+                    <h3 className="text-sm font-bold text-red-800 dark:text-red-200">{error.title}</h3>
+                    <div className="mt-2 text-sm text-red-700 dark:text-red-300">
+                        {typeof error.message === 'string' ? <p>{error.message}</p> : error.message}
+                    </div>
+                </div>
+            </div>
           </div>
         )}
 
