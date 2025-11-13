@@ -1,190 +1,85 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { GoogleGenAI, Chat } from '@google/genai';
-import { MessageSquare, Send, X, Bot, User, AlertTriangle } from 'lucide-react';
-import { Message, ErrorState } from '/src/types.ts';
-import { getApiErrorState } from '/src/services/errorHandler.ts';
+import React from 'react';
+import { ErrorState } from '../types.ts';
 
-const AiChatBot: React.FC = () => {
-    const [isOpen, setIsOpen] = useState(false);
-    const [messages, setMessages] = useState<Message[]>([
-        {
-            role: 'model',
-            content: "Hello! I'm your AI Safety Assistant. How can I help you with safety protocols or checklist questions today?",
-        }
-    ]);
-    const [userInput, setUserInput] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<ErrorState | null>(null);
-
-    const chatRef = useRef<Chat | null>(null);
-    const messagesEndRef = useRef<HTMLDivElement | null>(null);
-    const inputRef = useRef<HTMLInputElement | null>(null);
-
-    useEffect(() => {
-        if (isOpen) {
-            inputRef.current?.focus();
-        }
-    }, [isOpen]);
-
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    };
-
-    useEffect(() => {
-        scrollToBottom();
-    }, [messages, isLoading]);
+/**
+ * Processes an unknown error from an API call and returns a structured ErrorState object
+ * with a user-friendly title and actionable troubleshooting steps.
+ * @param err The error object caught from a try...catch block.
+ * @returns An ErrorState object to be used in the UI.
+ */
+export const getApiErrorState = (err: unknown): ErrorState => {
+    console.error("API Error:", err);
     
-    const initializeChat = () => {
-        try {
-            // Fix: Adhere to API key guidelines by using process.env.API_KEY directly.
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-            chatRef.current = ai.chats.create({
-              model: 'gemini-2.5-flash',
-              config: {
-                systemInstruction: 'You are a friendly and professional AI Safety Assistant. Your primary role is to answer questions about workplace safety, clarify safety checklist items, and provide information on safety protocols. Keep your answers concise, helpful, and easy to understand. Do not generate checklists, only answer questions about them.',
-              },
-            });
-        } catch (e) {
-            console.error("Failed to initialize chat:", e);
-            setError(getApiErrorState(e));
-        }
+    // Default error state for unexpected issues
+    let errorState: ErrorState = {
+      title: 'An Unexpected Error Occurred',
+      message: 'Something went wrong while communicating with the AI service. Please check the console for details and try again later.',
     };
 
-    const handleSendMessage = async (e: React.FormEvent) => {
-        e.preventDefault();
-        const trimmedInput = userInput.trim();
-        if (!trimmedInput || isLoading) return;
-
-        setError(null);
-        setMessages(prev => [...prev, { role: 'user', content: trimmedInput }]);
-        setUserInput('');
-        setIsLoading(true);
-
-        if (!chatRef.current) {
-            initializeChat();
-        }
-
-        if (!chatRef.current) {
-             setIsLoading(false);
-             setError({
-                 title: "Initialization Failed",
-                 message: "Chat could not be initialized. Please check your API Key configuration and try again."
-             });
-             return;
-        }
-
-        try {
-            const responseStream = await chatRef.current.sendMessageStream({ message: trimmedInput });
-            
-            let currentResponse = '';
-            setMessages(prev => [...prev, { role: 'model', content: '' }]);
-
-            for await (const chunk of responseStream) {
-                currentResponse += chunk.text;
-                setMessages(prev => {
-                    const newMessages = [...prev];
-                    if (newMessages.length > 0) {
-                      newMessages[newMessages.length - 1] = {...newMessages[newMessages.length-1], content: currentResponse};
-                    }
-                    return newMessages;
-                });
-            }
-
-        } catch (err) {
-            setError(getApiErrorState(err));
-            // Remove the optimistic model response placeholder on error
-            setMessages(prev => prev.slice(0, -1));
-        } finally {
-            setIsLoading(false);
-            inputRef.current?.focus();
-        }
-    };
+    if (err instanceof Error) {
+      const lowerCaseMessage = err.message.toLowerCase();
+      
+      if (lowerCaseMessage.includes('api key') || lowerCaseMessage.includes('permission denied')) {
+          errorState = {
+              title: 'API Key or Permission Issue',
+              message: (
+                React.createElement(React.Fragment, null,
+                  React.createElement("p", null, "There seems to be an issue with the API key configuration. Please take the following steps:"),
+                  React.createElement("ul", { className: "list-disc list-inside mt-2 space-y-1 text-sm" },
+                    React.createElement("li", null,
+                      React.createElement("strong", null, "Verify Key:"),
+                      " Ensure the API key is correct and properly configured."
+                    ),
+                    React.createElement("li", null,
+                      React.createElement("strong", null, "Check Permissions:"),
+                      " Log in to your Google AI Studio dashboard and confirm the API key is valid and enabled."
+                    ),
+                    React.createElement("li", null,
+                      React.createElement("strong", null, "Enable API:"),
+                      " Make sure the Generative Language API is enabled for your Google Cloud project."
+                    )
+                  )
+                )
+              ),
+          };
+      } else if (lowerCaseMessage.includes('quota')) {
+          errorState = {
+              title: 'API Quota Exceeded',
+              message: 'You have exceeded your request limit for the AI service. Please check your usage and billing details in your Google Cloud dashboard or wait before trying again.',
+          };
+      } else if (lowerCaseMessage.includes('blocked')) {
+          errorState = {
+              title: 'Content Moderation Error',
+              message: 'The request was blocked by the AI\'s safety filters. This can happen if the prompt is flagged as potentially harmful. Please try rephrasing your request.',
+          };
+      } else if (lowerCaseMessage.includes('fetch') || lowerCaseMessage.includes('network')) {
+          errorState = {
+              title: 'Network Connection Error',
+              message: 'Failed to connect to the AI service. Please check your internet connection and any firewall settings, then try again.',
+          };
+      } else if (lowerCaseMessage.includes('malformed') || lowerCaseMessage.includes('400') || lowerCaseMessage.includes('bad request')) {
+          errorState = {
+              title: 'Invalid Request',
+              message: 'The data sent to the AI service was invalid. This could be due to a temporary issue or incorrect input format. Please check your inputs or try again later.',
+          };
+      } else if (lowerCaseMessage.includes('500') || lowerCaseMessage.includes('server error') || lowerCaseMessage.includes('internal error')) {
+           errorState = {
+              title: 'AI Service Error',
+              message: 'The AI service encountered an internal error and could not complete your request. This is likely a temporary issue. Please try again in a few moments.',
+          };
+      } else if (lowerCaseMessage.includes('resource has been exhausted')) {
+          errorState = {
+              title: 'Resource Limit Reached',
+              message: 'The model has reached its resource limit for this request. Please try again with a shorter or less complex prompt.',
+          };
+      } else {
+        // Fallback for other specific errors
+        errorState = {
+            title: 'An Unexpected Error Occurred',
+            message: `Details: "${err.message}". Please try again.`,
+        };
+      }
+    }
     
-    return (
-        <>
-            <div className="no-print fixed bottom-6 right-6 z-40">
-                <button
-                    onClick={() => setIsOpen(!isOpen)}
-                    className="bg-amber-500 text-slate-900 rounded-full p-4 shadow-lg hover:bg-amber-600 transition-transform transform hover:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-amber-500"
-                    aria-label={isOpen ? "Close chat" : "Open chat"}
-                >
-                    {isOpen ? <X size={24} /> : <MessageSquare size={24} />}
-                </button>
-            </div>
-            
-            {isOpen && (
-                <div role="dialog" aria-labelledby="chat-heading" className="no-print fixed bottom-24 right-6 z-50 w-[calc(100vw-3rem)] max-w-sm h-[60vh] max-h-[700px] bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 flex flex-col animate-slide-in">
-                    <header className="flex-shrink-0 p-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                           <Bot className="w-6 h-6 text-amber-500" />
-                           <h2 id="chat-heading" className="text-lg font-semibold text-slate-900 dark:text-white">AI Safety Assistant</h2>
-                        </div>
-                    </header>
-
-                    <div className="flex-grow p-4 overflow-y-auto space-y-4">
-                        {messages.map((msg, index) => (
-                            <div key={index} className={`flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
-                                {msg.role === 'model' && <div className="flex-shrink-0 w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center"><Bot className="w-5 h-5 text-slate-500" /></div>}
-                                <div className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm ${
-                                    msg.role === 'user'
-                                        ? 'bg-amber-500 text-slate-900 rounded-br-none'
-                                        : 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-bl-none'
-                                }`}>
-                                    {msg.content}
-                                </div>
-                                {msg.role === 'user' && <div className="flex-shrink-0 w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center"><User className="w-5 h-5 text-white" /></div>}
-                            </div>
-                        ))}
-                         {isLoading && (
-                            <div className="flex items-start gap-3">
-                                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center"><Bot className="w-5 h-5 text-slate-500" /></div>
-                                <div className="max-w-[80%] rounded-2xl px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-bl-none flex items-center space-x-1">
-                                    <span className="w-2 h-2 bg-slate-400 rounded-full animate-[pulse_1s_ease-in-out_infinite]"></span>
-                                    <span className="w-2 h-2 bg-slate-400 rounded-full animate-[pulse_1s_ease-in-out_0.2s_infinite]"></span>
-                                    <span className="w-2 h-2 bg-slate-400 rounded-full animate-[pulse_1s_ease-in-out_0.4s_infinite]"></span>
-                                </div>
-                            </div>
-                        )}
-                        {error && (
-                            <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/30">
-                                <div className="flex items-start">
-                                    <AlertTriangle className="h-5 w-5 text-red-500 dark:text-red-400 flex-shrink-0 mr-2" />
-                                    <div>
-                                        <p className="text-sm font-semibold text-red-800 dark:text-red-200">{error.title}</p>
-                                        <p className="text-sm text-red-700 dark:text-red-300 mt-1">{error.message}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                        <div ref={messagesEndRef} />
-                    </div>
-
-                    <footer className="flex-shrink-0 p-4 border-t border-slate-200 dark:border-slate-700">
-                        <form onSubmit={handleSendMessage} className="flex items-center gap-2">
-                            <input
-                                ref={inputRef}
-                                type="text"
-                                value={userInput}
-                                onChange={(e) => setUserInput(e.target.value)}
-                                placeholder="Ask a question..."
-                                disabled={isLoading}
-                                className="w-full px-4 py-2 border-2 border-slate-200 dark:border-slate-600 rounded-full focus:border-amber-500 focus:outline-none transition-colors bg-white dark:bg-slate-800 disabled:opacity-60"
-                                aria-label="Your message"
-                            />
-                            <button
-                                type="submit"
-                                disabled={isLoading || !userInput.trim()}
-                                className="bg-amber-500 text-slate-900 rounded-full p-3 shadow-sm hover:bg-amber-600 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-                                aria-label="Send message"
-                            >
-                                <Send size={18} />
-                            </button>
-                        </form>
-                    </footer>
-                </div>
-            )}
-        </>
-    );
+    return errorState;
 };
-
-export default AiChatBot;
