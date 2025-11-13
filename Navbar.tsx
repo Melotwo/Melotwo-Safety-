@@ -9,7 +9,7 @@ const Navbar: React.FC<{
   onOpenQrCode: () => void;
 }> = ({ onThemeToggle, isDarkMode, onOpenSaved, savedCount, onOpenQrCode }) => (
   <nav role="navigation" aria-label="Main navigation" className="no-print bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-40 border-b border-slate-200 dark:border-slate-800">
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="max-w-4xl mx-auto px-4">
       <div className="flex justify-between items-center h-16">
         <div className="flex items-center space-x-4">
           <ShieldCheck className="w-8 h-8 text-amber-500" />
