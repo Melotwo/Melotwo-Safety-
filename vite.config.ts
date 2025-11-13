@@ -10,8 +10,4 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
-  define: {
-    // This makes the Vercel environment variable available to the client-side code
-    'process.env.API_KEY': JSON.stringify(process.env.API_KEY)
-  }
 })
