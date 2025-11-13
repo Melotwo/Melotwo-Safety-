@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Check, X, Mail, User, Building, Loader2 } from 'lucide-react';
+// Fix: Use relative path for import to resolve module loading error.
 import { PpeProduct } from '../types.ts';
 
 const QuoteModal: React.FC<{
