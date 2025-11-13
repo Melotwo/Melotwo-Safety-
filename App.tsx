@@ -177,14 +177,44 @@ const App: React.FC = () => {
       console.error("Error generating checklist:", err);
       let errorState: ErrorState = {
         title: 'An Unexpected Error Occurred',
-        message: 'Something went wrong. Please try again later.',
+        message: 'Something went wrong while generating the checklist. Please try again later.',
       };
-      if (err instanceof Error && err.message.includes('API key')) {
-          errorState = {
-            title: 'API Key Issue',
-            message: 'There might be an issue with your API key. Please ensure it is correctly configured in your environment variables.',
-          };
+
+      if (err instanceof Error) {
+        const lowerCaseMessage = err.message.toLowerCase();
+        
+        if (lowerCaseMessage.includes('api key') || lowerCaseMessage.includes('permission denied')) {
+            errorState = {
+                title: 'API Key or Permission Issue',
+                message: (
+                  <>
+                    <p>There seems to be an issue with your API key or permissions. Please check the following:</p>
+                    <ul className="list-disc list-inside mt-2 space-y-1">
+                      <li>Ensure your API key is correctly configured in your environment variables.</li>
+                      <li>Verify the API key is valid and enabled in your Google AI Studio dashboard.</li>
+                      <li>Check that the API has been enabled for your project.</li>
+                    </ul>
+                  </>
+                ),
+            };
+        } else if (lowerCaseMessage.includes('quota')) {
+            errorState = {
+                title: 'API Quota Exceeded',
+                message: 'You have exceeded your request limit. Please check your usage and billing details in your Google Cloud project or wait before trying again.',
+            };
+        } else if (lowerCaseMessage.includes('fetch') || lowerCaseMessage.includes('network')) {
+            errorState = {
+                title: 'Network Error',
+                message: 'Failed to connect to the AI service. Please check your internet connection and try again.',
+            };
+        } else if (lowerCaseMessage.includes('malformed')) {
+            errorState = {
+                title: 'Invalid Request',
+                message: 'The request sent to the AI service was malformed. This might be a bug. Please try rephrasing your inputs.',
+            };
+        }
       }
+      
       setError(errorState);
     } finally {
       setIsLoading(false);
