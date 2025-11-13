@@ -14,19 +14,9 @@ import Toast from './components/Toast';
 import AiChatBot from './components/AiChatBot';
 import QrCodeModal from './components/QrCodeModal';
 import { PPE_PRODUCTS, exampleScenarios } from './constants';
-import { PpeProduct, SavedChecklist } from './types';
+import { PpeProduct, SavedChecklist, ErrorState, ValidationErrors } from './types';
+import { getApiErrorState } from './services/errorHandler';
 
-
-// ========= TYPES =========
-interface ErrorState {
-  title: string;
-  message: string | React.ReactNode;
-}
-
-interface ValidationErrors {
-    industry?: string;
-    task?: string;
-}
 
 const LOADING_MESSAGES = [
   'Assessing hazards...',
@@ -205,48 +195,7 @@ const App: React.FC = () => {
       setChecklist(fullText);
 
     } catch (err) {
-      console.error("Error generating checklist:", err);
-      let errorState: ErrorState = {
-        title: 'An Unexpected Error Occurred',
-        message: 'Something went wrong while generating the checklist. Please try again later.',
-      };
-
-      if (err instanceof Error) {
-        const lowerCaseMessage = err.message.toLowerCase();
-        
-        if (lowerCaseMessage.includes('api key') || lowerCaseMessage.includes('permission denied')) {
-            errorState = {
-                title: 'API Key or Permission Issue',
-                message: (
-                  <>
-                    <p>There seems to be an issue with your API key or permissions. Please check the following:</p>
-                    <ul className="list-disc list-inside mt-2 space-y-1">
-                      <li>Ensure your API key is correctly configured in your environment variables.</li>
-                      <li>Verify the API key is valid and enabled in your Google AI Studio dashboard.</li>
-                      <li>Check that the API has been enabled for your project.</li>
-                    </ul>
-                  </>
-                ),
-            };
-        } else if (lowerCaseMessage.includes('quota')) {
-            errorState = {
-                title: 'API Quota Exceeded',
-                message: 'You have exceeded your request limit. Please check your usage and billing details in your Google Cloud project or wait before trying again.',
-            };
-        } else if (lowerCaseMessage.includes('fetch') || lowerCaseMessage.includes('network')) {
-            errorState = {
-                title: 'Network Error',
-                message: 'Failed to connect to the AI service. Please check your internet connection and try again.',
-            };
-        } else if (lowerCaseMessage.includes('malformed')) {
-            errorState = {
-                title: 'Invalid Request',
-                message: 'The request sent to the AI service was malformed. This might be a bug. Please try rephrasing your inputs.',
-            };
-        }
-      }
-      
-      setError(errorState);
+      setError(getApiErrorState(err));
     } finally {
       setIsLoading(false);
     }
@@ -394,17 +343,33 @@ const App: React.FC = () => {
           </div>
         </section>
 
-        <section className="mt-8 text-center animate-slide-in" style={{ animationDelay: '200ms' }}>
-            <h2 className="text-sm font-semibold text-slate-600 dark:text-slate-400">Or, start with an example:</h2>
-            <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <section className="mt-12 animate-slide-in" style={{ animationDelay: '200ms' }}>
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Not Sure Where to Start?</h2>
+              <p className="mt-2 max-w-2xl mx-auto text-lg text-slate-600 dark:text-slate-400">
+                Get started quickly by selecting one of our pre-filled scenarios.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {exampleScenarios.map((scenario) => (
                 <button
                   key={scenario.title}
                   onClick={() => handleExampleClick(scenario)}
-                  className="p-4 bg-white dark:bg-slate-800/50 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700/50 hover:border-amber-500 dark:hover:border-amber-500 hover:shadow-md transition-all text-center transform hover:-translate-y-1"
+                  className="p-6 bg-white dark:bg-slate-800/50 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700/50 hover:border-amber-500 dark:hover:border-amber-500 hover:shadow-xl transition-all text-left transform hover:-translate-y-1 flex flex-col h-full"
+                  aria-label={`Load example scenario: ${scenario.title}`}
                 >
-                  {scenario.icon}
-                  <p className="font-semibold text-slate-800 dark:text-slate-200">{scenario.title}</p>
+                  <div className="flex items-center mb-4">
+                      {scenario.icon}
+                      <p className="ml-4 font-semibold text-lg text-slate-800 dark:text-slate-200">{scenario.title}</p>
+                  </div>
+                  <div className="text-sm text-slate-600 dark:text-slate-400 space-y-2 flex-grow">
+                    <p>
+                      <strong className="font-medium text-slate-700 dark:text-slate-300">Industry:</strong> {scenario.industry}
+                    </p>
+                    <p>
+                      <strong className="font-medium text-slate-700 dark:text-slate-300">Task:</strong> {scenario.task}
+                    </p>
+                  </div>
                 </button>
               ))}
             </div>
