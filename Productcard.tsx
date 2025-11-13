@@ -13,7 +13,7 @@ const ProductCard: React.FC<{
       <p className="text-sm text-slate-600 dark:text-slate-400 mt-1 flex-grow">{product.description}</p>
       <button
         onClick={() => onGetQuote(product)}
-        className="mt-4 w-full flex items-center justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-amber-500 hover:bg-amber-600 focus:outline-none"
+        className="mt-4 w-full flex items-center justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-semibold text-slate-900 bg-amber-500 hover:bg-amber-600 focus:outline-none"
       >
         <ShoppingCart size={16} className="mr-2" />
         Get a Quote
