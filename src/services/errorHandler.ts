@@ -1,4 +1,5 @@
 import React from 'react';
+// Fix: Use relative path for import to resolve module loading error.
 import { ErrorState } from '../types.ts';
 
 /**
