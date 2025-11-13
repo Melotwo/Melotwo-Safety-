@@ -4,8 +4,6 @@ import { MessageSquare, Send, X, Bot, User, AlertTriangle } from 'lucide-react';
 import { Message, ErrorState } from '../types';
 import { getApiErrorState } from '../services/errorHandler';
 
-const apiKey = import.meta.env.VITE_API_KEY;
-
 const AiChatBot: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<Message[]>([
@@ -37,16 +35,9 @@ const AiChatBot: React.FC = () => {
     }, [messages, isLoading]);
     
     const initializeChat = () => {
-        if (!apiKey) {
-            console.error("API Key is missing for ChatBot.");
-            setError({
-                title: "Configuration Error",
-                message: "The API key is missing. The main application should have displayed an error."
-            });
-            return;
-        }
         try {
-            const ai = new GoogleGenAI({ apiKey });
+            // Fix: Adhere to API key guidelines by using process.env.API_KEY directly.
+            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
             chatRef.current = ai.chats.create({
               model: 'gemini-2.5-flash',
               config: {
