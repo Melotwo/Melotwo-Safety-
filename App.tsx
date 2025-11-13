@@ -284,7 +284,7 @@ const App: React.FC = () => {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-amber-500 rounded-2xl mb-4 shadow-lg">
               <ShieldCheck className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-2">AI Safety Checklist Generator</h1>
+          <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white mb-2">AI Safety Checklist Generator</h1>
           <p className="text-slate-600 dark:text-slate-400 text-lg">Generate comprehensive safety checklists in seconds.</p>
         </header>
 
@@ -422,7 +422,7 @@ const App: React.FC = () => {
                 <MarkdownRenderer text={checklist} checkedItems={checkedItems} onToggleItem={toggleItem} />
             </section>
             
-            <div className="no-print mt-8 flex gap-4">
+            <div className="no-print mt-8 flex flex-col sm:flex-row gap-4">
                 <button onClick={handleSaveChecklist} className="flex-1 bg-slate-700 hover:bg-slate-800 text-white font-semibold py-3 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg"><Save size={18} /> Save</button>
                 <button onClick={handleCopy} className="flex-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-semibold py-3 rounded-xl transition-all flex items-center justify-center gap-2"><Copy size={18} /> Copy</button>
                 <button onClick={handleExportPdf} className="flex-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-semibold py-3 rounded-xl transition-all flex items-center justify-center gap-2"><FileDown size={18} /> PDF</button>
