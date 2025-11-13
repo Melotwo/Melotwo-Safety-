@@ -12,6 +12,8 @@ interface ErrorState {
   message: string | React.ReactNode;
 }
 
+const apiKey = import.meta.env.VITE_API_KEY;
+
 const AiChatBot: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<Message[]>([
@@ -77,8 +79,16 @@ const AiChatBot: React.FC = () => {
     }
 
     const initializeChat = () => {
+        if (!apiKey) {
+            console.error("API Key is missing for ChatBot.");
+            setError({
+                title: "Configuration Error",
+                message: "The API key is missing. The main application should have displayed an error."
+            });
+            return;
+        }
         try {
-            const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
+            const ai = new GoogleGenAI({ apiKey });
             chatRef.current = ai.chats.create({
               model: 'gemini-2.5-flash',
               config: {
@@ -150,7 +160,7 @@ const AiChatBot: React.FC = () => {
                     aria-label={isOpen ? "Close chat" : "Open chat"}
                 >
                     {isOpen ? <X size={24} /> : <MessageSquare size={24} />}
-                </button>
+                button>
             </div>
             
             {isOpen && (
