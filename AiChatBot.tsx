@@ -1,16 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI, Chat } from '@google/genai';
 import { MessageSquare, Send, X, Bot, User, AlertTriangle } from 'lucide-react';
-
-interface Message {
-  role: 'user' | 'model';
-  content: string;
-}
-
-interface ErrorState {
-  title: string;
-  message: string | React.ReactNode;
-}
+import { Message, ErrorState } from '../types';
+import { getApiErrorState } from '../services/errorHandler';
 
 const apiKey = import.meta.env.VITE_API_KEY;
 
@@ -44,40 +36,6 @@ const AiChatBot: React.FC = () => {
         scrollToBottom();
     }, [messages, isLoading]);
     
-    const getErrorState = (err: unknown): ErrorState => {
-        let errorState: ErrorState = {
-            title: 'An Unexpected Error Occurred',
-            message: 'Something went wrong. Please try again later.',
-        };
-
-        if (err instanceof Error) {
-            const lowerCaseMessage = err.message.toLowerCase();
-            
-            if (lowerCaseMessage.includes('api key') || lowerCaseMessage.includes('permission denied')) {
-                errorState = {
-                    title: 'API Key or Permission Issue',
-                    message: "Please check if your API key is configured correctly and has the necessary permissions.",
-                };
-            } else if (lowerCaseMessage.includes('quota')) {
-                errorState = {
-                    title: 'API Quota Exceeded',
-                    message: "You've exceeded your request limit. Please check your usage.",
-                };
-            } else if (lowerCaseMessage.includes('fetch') || lowerCaseMessage.includes('network')) {
-                errorState = {
-                    title: 'Network Error',
-                    message: 'Failed to connect to the AI service. Check your internet connection.',
-                };
-            } else if (lowerCaseMessage.includes('malformed')) {
-                errorState = {
-                    title: 'Invalid Request',
-                    message: 'The request was malformed. This might be a bug. Try rephrasing.',
-                };
-            }
-        }
-        return errorState;
-    }
-
     const initializeChat = () => {
         if (!apiKey) {
             console.error("API Key is missing for ChatBot.");
@@ -97,7 +55,7 @@ const AiChatBot: React.FC = () => {
             });
         } catch (e) {
             console.error("Failed to initialize chat:", e);
-            setError(getErrorState(e));
+            setError(getApiErrorState(e));
         }
     };
 
@@ -142,8 +100,8 @@ const AiChatBot: React.FC = () => {
             }
 
         } catch (err) {
-            console.error("Error sending message:", err);
-            setError(getErrorState(err));
+            setError(getApiErrorState(err));
+            // Remove the optimistic model response placeholder on error
             setMessages(prev => prev.slice(0, -1));
         } finally {
             setIsLoading(false);
@@ -160,7 +118,7 @@ const AiChatBot: React.FC = () => {
                     aria-label={isOpen ? "Close chat" : "Open chat"}
                 >
                     {isOpen ? <X size={24} /> : <MessageSquare size={24} />}
-                button>
+                </button>
             </div>
             
             {isOpen && (
