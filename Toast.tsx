@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { CheckCircle } from 'lucide-react';
 
-const Toast: React.FC<{ message: string }> = ({ message }) => {
+const Toast: React.FC<{ message: string, onDismiss: () => void }> = ({ message, onDismiss }) => {
   const [visible, setVisible] = useState(false);
   const [animatingOut, setAnimatingOut] = useState(false);
 
@@ -11,9 +11,9 @@ const Toast: React.FC<{ message: string }> = ({ message }) => {
       setAnimatingOut(false);
       const timer = setTimeout(() => {
         setAnimatingOut(true);
-        // Let animation finish before hiding
         setTimeout(() => {
             setVisible(false);
+            onDismiss();
         }, 300); 
       }, 2700);
       return () => clearTimeout(timer);
@@ -21,7 +21,7 @@ const Toast: React.FC<{ message: string }> = ({ message }) => {
       setVisible(false);
       setAnimatingOut(false);
     }
-  }, [message]);
+  }, [message, onDismiss]);
 
   if (!visible) {
     return null;
