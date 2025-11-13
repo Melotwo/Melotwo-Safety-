@@ -33,12 +33,7 @@ const LOADING_MESSAGES = [
   'Formatting your safety checklist...',
 ];
 
-const apiKey = import.meta.env.VITE_API_KEY;
-const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
-
-if (!ai) {
-  console.error("VITE_API_KEY environment variable not set. The application will not be able to generate checklists.");
-}
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 
 // ========= MAIN APP COMPONENT =========
@@ -139,10 +134,6 @@ const App: React.FC = () => {
 
 
     try {
-      if (!ai) {
-        throw new Error("The AI client is not configured due to a missing VITE_API_KEY.");
-      }
-      
       const systemInstruction = `Act as a certified safety inspector. Your tone must be formal, professional, and authoritative. All responses must be structured as comprehensive safety checklists. At the end of every generated checklist, you MUST include the following disclaimer, formatted exactly as shown below:
 
 ---
