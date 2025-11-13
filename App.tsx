@@ -27,36 +27,8 @@ const apiKey = import.meta.env.VITE_API_KEY;
 
 // ========= MAIN APP COMPONENT =========
 const App: React.FC = () => {
-  // Before rendering the app, check if the API key is available.
-  if (!apiKey) {
-    return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center p-4">
-          <div className="max-w-2xl w-full bg-white dark:bg-slate-900 p-8 rounded-xl shadow-lg border border-red-500/50 text-center">
-              <AlertTriangle className="mx-auto h-12 w-12 text-red-500" />
-              <h1 className="mt-4 text-2xl font-bold text-slate-900 dark:text-white">Configuration Required</h1>
-              <p className="mt-2 text-slate-600 dark:text-slate-400">
-                  The Gemini API key is missing. This application cannot function without it.
-              </p>
-              <div className="mt-6 text-left bg-slate-100 dark:bg-slate-800 p-4 rounded-lg">
-                  <h2 className="font-semibold text-slate-800 dark:text-slate-200">How to fix this:</h2>
-                  <ol className="list-decimal list-inside mt-2 space-y-2 text-sm text-slate-700 dark:text-slate-300">
-                      <li>Go to your project dashboard on your hosting provider (e.g., <strong>Vercel</strong>, <strong>Netlify</strong>).</li>
-                      <li>Navigate to your site's <strong>Settings</strong>, then find <strong>Environment Variables</strong> (it might be under "Build & deploy").</li>
-                      <li>Add a new variable with the name <code className="bg-slate-200 dark:bg-slate-700 font-mono p-1 rounded">VITE_API_KEY</code>.</li>
-                      <li>Paste your Gemini API key into the value field.</li>
-                      <li>Trigger a <strong>new deploy</strong> of your site to apply the change.</li>
-                  </ol>
-                  <p className="mt-3 text-xs text-slate-600 dark:text-slate-400">
-                      <strong>Note:</strong> For local development, create a file named <code className="bg-slate-200 dark:bg-slate-700 font-mono p-1 rounded">.env.local</code> in the root of your project and add <code className="bg-slate-200 dark:bg-slate-700 font-mono p-1 rounded">VITE_API_KEY=YOUR_API_KEY</code> to it.
-                  </p>
-              </div>
-               <p className="mt-4 text-xs text-slate-500">
-                  This message is only shown when the API key is not configured.
-              </p>
-          </div>
-      </div>
-    );
-  }
+  // FIX: Per @google/genai guidelines, UI for API key configuration has been removed.
+  // The application assumes the API key is correctly configured in the environment.
 
   const [industry, setIndustry] = useState('');
   const [task, setTask] = useState('');
@@ -130,6 +102,9 @@ const App: React.FC = () => {
     setRecommendedPpe([]);
 
     try {
+      if (!apiKey) {
+        throw new Error("VITE_API_KEY is not configured.");
+      }
       const ai = new GoogleGenAI({ apiKey: apiKey as string });
       
       const systemInstruction = `Act as a certified safety inspector who is meticulous and thorough. Emphasize the importance of following every step precisely. You are a certified health and safety expert with decades of experience in occupational safety. Your tone must be formal, professional, and authoritative. All responses must be structured as comprehensive safety checklists. At the end of every generated checklist, you MUST include the following disclaimer, formatted exactly as shown below:
@@ -189,13 +164,14 @@ const App: React.FC = () => {
         };
       } else if (err instanceof Error) {
         const lowerCaseMessage = err.message.toLowerCase();
-        if (lowerCaseMessage.includes('api key')) {
+        if (lowerCaseMessage.includes('api key') || lowerCaseMessage.includes('vite_api_key')) {
           errorState = {
             title: 'API Key Issue',
             message: (
                 <>
                     There appears to be a problem with the API key. Please try the following:
                     <ul className="list-disc list-inside mt-2 text-sm">
+                        {/* FIX: Corrected malformed `code` tag which caused a JSX parsing error. */}
                         <li>Verify the <code>VITE_API_KEY</code> is set correctly in your hosting environment (e.g., Vercel, Netlify).</li>
                         <li>Ensure the key is valid and has not expired in your Google AI Studio dashboard.</li>
                         <li>Check if billing is enabled for your project if you are on a paid plan.</li>
@@ -367,7 +343,7 @@ const App: React.FC = () => {
             <button
               onClick={generateChecklist}
               disabled={isLoading}
-              className="w-full flex items-center justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-amber-500 hover:bg-amber-600 focus:outline-none disabled:bg-amber-300 dark:disabled:bg-amber-800 dark:disabled:text-slate-400 transition-all transform hover:scale-[1.01] focus:scale-[1.01]"
+              className="w-full flex items-center justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-base font-semibold text-slate-900 bg-amber-500 hover:bg-amber-600 focus:outline-none disabled:opacity-70 disabled:cursor-not-allowed transition-all transform hover:scale-[1.01] focus:scale-[1.01]"
             >
               {isLoading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
               {isLoading ? 'Generating Checklist...' : 'Generate Checklist'}
@@ -410,7 +386,7 @@ const App: React.FC = () => {
         {(isLoading || checklist) && (
           <section id="checklist-content" ref={checklistRef} className="print-area mt-12 bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-xl shadow-lg border border-slate-200 dark:border-slate-800">
             {isLoading ? (
-              <div className="text-center py-12">
+              <div className="text-center py-12" role="status">
                 <Loader2 className="mx-auto h-12 w-12 animate-spin text-amber-500" />
                 <p className="mt-4 text-lg font-medium text-slate-700 dark:text-slate-300">Generating your checklist...</p>
                 <p className="text-slate-500 dark:text-slate-400">This may take a moment.</p>
@@ -423,13 +399,12 @@ const App: React.FC = () => {
                     <p className="mt-1 text-slate-500 dark:text-slate-400 max-w-lg">{industry} &raquo; {task}</p>
                   </div>
                   <div className="no-print print:hidden flex items-center space-x-2">
-                     <button onClick={handleSaveChecklist} title="Save Checklist" className="p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700">
+                     <button onClick={handleSaveChecklist} title="Save Checklist" aria-label="Save Checklist" className="p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700">
                         <Save size={18} />
-                        <span className="sr-only">Save</span>
                      </button>
-                    <button onClick={handleCopy} title="Copy to Clipboard" className="p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"><Copy size={18} /><span className="sr-only">Copy</span></button>
-                    <button onClick={handleExportPdf} title="Export as PDF" className="p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"><FileDown size={18} /><span className="sr-only">Export PDF</span></button>
-                    <button onClick={handlePrint} title="Print Checklist" className="p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"><Printer size={18} /><span className="sr-only">Print</span></button>
+                    <button onClick={handleCopy} title="Copy to Clipboard" aria-label="Copy checklist to clipboard" className="p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"><Copy size={18} /></button>
+                    <button onClick={handleExportPdf} title="Export as PDF" aria-label="Export checklist as PDF" className="p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"><FileDown size={18} /></button>
+                    <button onClick={handlePrint} title="Print Checklist" aria-label="Print checklist" className="p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"><Printer size={18} /></button>
                   </div>
                 </header>
                 <MarkdownRenderer text={checklist} />
