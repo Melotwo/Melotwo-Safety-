@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Bookmark, Eye, Trash2, ArrowLeft } from 'lucide-react';
-import { SavedChecklist } from '/src/types.ts';
-import MarkdownRenderer from '/src/components/MarkdownRenderer.tsx';
+import { SavedChecklist } from '../types.ts';
+import MarkdownRenderer from './MarkdownRenderer.tsx';
 
 const SavedChecklistsModal: React.FC<{
   isOpen: boolean;
