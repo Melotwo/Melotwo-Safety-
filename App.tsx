@@ -24,6 +24,14 @@ interface ErrorState {
 // Vite exposes environment variables prefixed with `VITE_` on the `import.meta.env` object.
 const apiKey = import.meta.env.VITE_API_KEY;
 
+// Initialize the Google AI client once at the module level for efficiency.
+// This avoids creating a new instance on every checklist generation.
+const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
+
+if (!ai) {
+  console.error("VITE_API_KEY environment variable not set. The application will not be able to generate checklists.");
+}
+
 
 // ========= MAIN APP COMPONENT =========
 const App: React.FC = () => {
@@ -33,6 +41,7 @@ const App: React.FC = () => {
   const [industry, setIndustry] = useState('');
   const [task, setTask] = useState('');
   const [equipment, setEquipment] = useState('');
+  const [specificDetails, setSpecificDetails] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<ErrorState | null>(null);
   const [checklist, setChecklist] = useState<string | null>(null);
@@ -79,6 +88,7 @@ const App: React.FC = () => {
     setIndustry(scenario.industry);
     setTask(scenario.task);
     setEquipment(scenario.equipment);
+    setSpecificDetails(scenario.details);
   };
 
   const showToast = (message: string) => {
@@ -102,10 +112,9 @@ const App: React.FC = () => {
     setRecommendedPpe([]);
 
     try {
-      if (!apiKey) {
-        throw new Error("VITE_API_KEY is not configured.");
+      if (!ai) {
+        throw new Error("The AI client is not configured due to a missing VITE_API_KEY.");
       }
-      const ai = new GoogleGenAI({ apiKey: apiKey as string });
       
       const systemInstruction = `Act as a certified safety inspector who is meticulous and thorough. Emphasize the importance of following every step precisely. You are a certified health and safety expert with decades of experience in occupational safety. Your tone must be formal, professional, and authoritative. All responses must be structured as comprehensive safety checklists. At the end of every generated checklist, you MUST include the following disclaimer, formatted exactly as shown below:
 
@@ -119,6 +128,7 @@ const App: React.FC = () => {
         - **Industry/Environment:** ${industry}
         - **Specific Task:** ${task}
         - **Equipment Involved:** ${equipment || 'Not specified'}
+        - **Specific Details:** ${specificDetails || 'Not specified'}
 
         **Instructions:**
         1.  Structure the checklist into logical sections using '##' for main headings. The sections must be: "Hazard Assessment", "Personal Protective Equipment (PPE)", "Safe Work Procedures", "Emergency Plan", and "Post-Task Actions & Review".
@@ -334,6 +344,17 @@ const App: React.FC = () => {
                 value={equipment}
                 onChange={(e) => setEquipment(e.target.value)}
                 placeholder="e.g., Arc welder, Scaffolding. You can use markdown for lists, bolding, etc."
+                rows={3}
+                className="mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm resize-y transition-colors"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label htmlFor="details" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Specific Details (e.g., location, conditions)</label>
+              <textarea
+                id="details"
+                value={specificDetails}
+                onChange={(e) => setSpecificDetails(e.target.value)}
+                placeholder="e.g., Outdoors, rainy conditions, working at height"
                 rows={3}
                 className="mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm resize-y transition-colors"
               />
