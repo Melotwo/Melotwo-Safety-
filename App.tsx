@@ -35,8 +35,36 @@ const LOADING_MESSAGES = [
   'Formatting your safety checklist...',
 ];
 
+const apiKey = import.meta.env.VITE_API_KEY;
+
 // ========= MAIN APP COMPONENT =========
 const App: React.FC = () => {
+  if (!apiKey) {
+    return (
+        <div className="min-h-screen bg-red-50 text-red-900 flex flex-col items-center justify-center p-4 font-sans">
+            <div className="max-w-2xl text-center">
+                <AlertTriangle className="mx-auto h-12 w-12 text-red-500" />
+                <h1 className="mt-4 text-2xl font-bold">Configuration Error</h1>
+                <p className="mt-2 text-lg">
+                    The AI Service API Key is missing.
+                </p>
+                <div className="mt-6 text-left bg-red-100 p-6 rounded-lg border border-red-200">
+                    <p className="font-semibold">To the website administrator:</p>
+                    <p className="mt-2">
+                        This application cannot connect to the AI service because the <code>VITE_API_KEY</code> is not configured on the server.
+                    </p>
+                    <ol className="list-decimal list-inside mt-3 space-y-2 text-sm">
+                        <li>Log in to your deployment platform (e.g., Netlify, Vercel).</li>
+                        <li>Navigate to your site's settings, then find the "Environment Variables" section (often under "Build &amp; Deploy").</li>
+                        <li>Add a new environment variable with the key <code>VITE_API_KEY</code> and your Google AI Studio API key as the value.</li>
+                        <li>Redeploy the application for the changes to take effect.</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    );
+  }
+
   const [industry, setIndustry] = useState('');
   const [task, setTask] = useState('');
   const [equipment, setEquipment] = useState('');
@@ -134,7 +162,7 @@ const App: React.FC = () => {
 
 
     try {
-      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
+      const ai = new GoogleGenAI({ apiKey });
       const systemInstruction = `Act as a certified safety inspector. Your tone must be formal, professional, and authoritative. All responses must be structured as comprehensive safety checklists. At the end of every generated checklist, you MUST include the following disclaimer, formatted exactly as shown below:
 
 ---
