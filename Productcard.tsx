@@ -1,6 +1,6 @@
 import React from 'react';
 import { ShoppingCart } from 'lucide-react';
-import { PpeProduct } from '/src/types.ts';
+import { PpeProduct } from '../types.ts';
 
 const ProductCard: React.FC<{
   product: PpeProduct;
