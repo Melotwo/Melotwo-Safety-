@@ -57,7 +57,7 @@ const MarkdownRenderer: React.FC<{
   return (
     <div className="space-y-6">
       {categories.map((category, catIdx) => (
-        <div key={catIdx} className={`rounded-xl ${category.name === 'Disclaimer' ? 'bg-slate-50 dark:bg-slate-800/50 p-4' : 'border-2 border-slate-100 dark:border-slate-800 p-6'}`}>
+        <div key={catIdx} className={`rounded-xl ${category.name === 'Disclaimer' ? 'bg-slate-50 dark:bg-slate-800/50 p-3 sm:p-4' : 'border-2 border-slate-100 dark:border-slate-800 p-4 sm:p-6'}`}>
           <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-3">
              {category.name !== 'Disclaimer' && (
                 <span className="w-8 h-8 bg-amber-500 text-white rounded-lg flex items-center justify-center text-sm font-bold flex-shrink-0">
@@ -76,7 +76,7 @@ const MarkdownRenderer: React.FC<{
               return (
                 <label
                   key={key}
-                  className="flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors border-2 border-transparent hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                  className="flex items-start gap-3 p-2 sm:p-3 rounded-lg cursor-pointer transition-colors border-2 border-transparent hover:bg-slate-50 dark:hover:bg-slate-800/50"
                 >
                   <input
                     type="checkbox"
@@ -96,3 +96,5 @@ const MarkdownRenderer: React.FC<{
     </div>
   );
 };
+
+export default MarkdownRenderer;
