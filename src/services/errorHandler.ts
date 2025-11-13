@@ -24,13 +24,11 @@ export const getApiErrorState = (err: unknown): ErrorState => {
               title: 'API Key or Permission Issue',
               message: (
                 React.createElement(React.Fragment, null,
-                  React.createElement("p", null, "There seems to be an issue with your API key configuration. Please take the following steps:"),
+                  React.createElement("p", null, "There seems to be an issue with the API key configuration. Please take the following steps:"),
                   React.createElement("ul", { className: "list-disc list-inside mt-2 space-y-1 text-sm" },
                     React.createElement("li", null,
                       React.createElement("strong", null, "Verify Key:"),
-                      " Ensure your API key is correct and has been added to the server's environment variables (",
-                      React.createElement("code", { className: "text-xs bg-red-100 dark:bg-red-900/50 p-1 rounded" }, "VITE_API_KEY"),
-                      ")."
+                      " Ensure the API key is correct and properly configured."
                     ),
                     React.createElement("li", null,
                       React.createElement("strong", null, "Check Permissions:"),
