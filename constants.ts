@@ -35,7 +35,7 @@ export const PPE_PRODUCTS: PpeProduct[] = [
 
 export const exampleScenarios = [
   {
-    icon: React.createElement(Building, { className: "w-8 h-8 mx-auto mb-2 text-amber-500" }),
+    icon: React.createElement(Building, { className: "w-8 h-8 text-amber-500 flex-shrink-0" }),
     title: 'Construction Welding',
     industry: 'High-rise Construction Site',
     task: 'Welding steel support beams on the 3rd floor',
@@ -43,7 +43,7 @@ export const exampleScenarios = [
     details: 'Working on an open-air platform at a height of 30 meters. Mildly windy conditions.',
   },
   {
-    icon: React.createElement(Factory, { className: "w-8 h-8 mx-auto mb-2 text-amber-500" }),
+    icon: React.createElement(Factory, { className: "w-8 h-8 text-amber-500 flex-shrink-0" }),
     title: 'Warehouse Forklift',
     industry: 'Busy Distribution Warehouse',
     task: 'Operating a forklift to move pallets from receiving to storage racks',
@@ -51,7 +51,7 @@ export const exampleScenarios = [
     details: 'Narrow aisles with pedestrian traffic. Indoor, fluorescent lighting.',
   },
   {
-    icon: React.createElement(Wrench, { className: "w-8 h-8 mx-auto mb-2 text-amber-500" }),
+    icon: React.createElement(Wrench, { className: "w-8 h-8 text-amber-500 flex-shrink-0" }),
     title: 'Confined Space Entry',
     industry: 'Wastewater Treatment Plant',
     task: 'Entering a drainage tank for routine inspection and maintenance',
