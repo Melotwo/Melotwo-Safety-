@@ -1,3 +1,5 @@
+import React from 'react';
+
 export interface PpeProduct {
   id: string;
   name: string;
@@ -11,4 +13,28 @@ export interface SavedChecklist {
   title: string;
   content: string;
   savedAt: string;
+}
+
+/**
+ * Defines the structure for displaying error messages to the user.
+ */
+export interface ErrorState {
+  title: string;
+  message: string | React.ReactNode;
+}
+
+/**
+ * Defines the structure for form validation errors.
+ */
+export interface ValidationErrors {
+    industry?: string;
+    task?: string;
+}
+
+/**
+ * Defines the structure for a chat message.
+ */
+export interface Message {
+  role: 'user' | 'model';
+  content: string;
 }
