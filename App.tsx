@@ -313,7 +313,7 @@ const App: React.FC = () => {
 
         <section className="bg-white dark:bg-slate-900 p-8 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 animate-slide-in" style={{ animationDelay: '100ms' }}>
           <div className="space-y-6">
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label htmlFor="industry" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Industry / Environment *</label>
                 <input
@@ -339,8 +339,6 @@ const App: React.FC = () => {
                 />
                 {validationErrors.task && <p className="mt-1 text-sm text-red-600">{validationErrors.task}</p>}
               </div>
-            </div>
-            <div className="grid md:grid-cols-2 gap-6">
               <div>
                 <label htmlFor="equipment" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Equipment Involved (Optional)</label>
                 <input
