@@ -21,6 +21,18 @@ interface ErrorState {
   message: string | React.ReactNode;
 }
 
+interface ValidationErrors {
+    industry?: boolean;
+    task?: boolean;
+}
+
+const LOADING_MESSAGES = [
+  'Assessing hazards...',
+  'Compiling PPE recommendations...',
+  'Finalizing procedure steps...',
+  'Formatting your safety checklist...',
+];
+
 // Vite exposes environment variables prefixed with `VITE_` on the `import.meta.env` object.
 const apiKey = import.meta.env.VITE_API_KEY;
 
@@ -51,6 +63,8 @@ const App: React.FC = () => {
   const [savedChecklists, setSavedChecklists] = useState<SavedChecklist[]>([]);
   const [isSavedModalOpen, setIsSavedModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [loadingMessage, setLoadingMessage] = useState(LOADING_MESSAGES[0]);
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
 
 
   const checklistRef = useRef<HTMLDivElement>(null);
@@ -81,6 +95,21 @@ const App: React.FC = () => {
     }
   }, []);
 
+  useEffect(() => {
+    let messageInterval: number | undefined;
+    if (isLoading) {
+      setLoadingMessage(LOADING_MESSAGES[0]); // Start with the first message
+      let index = 0;
+      messageInterval = window.setInterval(() => {
+        index = (index + 1) % LOADING_MESSAGES.length;
+        setLoadingMessage(LOADING_MESSAGES[index]);
+      }, 2000); // Cycle every 2 seconds
+    }
+    return () => {
+      if (messageInterval) clearInterval(messageInterval);
+    };
+  }, [isLoading]);
+
   const toggleTheme = () => setIsDarkMode(prev => !prev);
 
   const handleExampleClick = (scenario: typeof exampleScenarios[0]) => {
@@ -88,6 +117,7 @@ const App: React.FC = () => {
     setTask(scenario.task);
     setEquipment(scenario.equipment);
     setSpecificDetails(scenario.details);
+    setValidationErrors({});
   };
 
   const showToast = (message: string) => {
@@ -98,13 +128,20 @@ const App: React.FC = () => {
   }
 
   const generateChecklist = async () => {
-    if (!industry || !task) {
-      setError({
-        title: 'Missing Information',
-        message: 'Please fill in at least the Industry/Environment and Task fields to generate a checklist.',
-      });
-      return;
+    const newValidationErrors: ValidationErrors = {};
+    if (!industry.trim()) newValidationErrors.industry = true;
+    if (!task.trim()) newValidationErrors.task = true;
+    
+    setValidationErrors(newValidationErrors);
+
+    if (Object.keys(newValidationErrors).length > 0) {
+        setError({
+            title: 'Missing Information',
+            message: 'Please fill in the required fields highlighted below to generate a checklist.',
+        });
+        return;
     }
+
     setIsLoading(true);
     setError(null);
     setChecklist(null);
@@ -319,21 +356,37 @@ const App: React.FC = () => {
                 type="text"
                 id="industry"
                 value={industry}
-                onChange={(e) => setIndustry(e.target.value)}
+                onChange={(e) => {
+                    setIndustry(e.target.value);
+                    if (validationErrors.industry) {
+                        setValidationErrors(prev => ({...prev, industry: false}));
+                    }
+                }}
                 placeholder="e.g., Construction Site, Warehouse"
-                className="mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm transition-colors"
+                className={`mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-800 border rounded-md shadow-sm placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm transition-colors ${validationErrors.industry ? 'border-red-500' : 'border-slate-300 dark:border-slate-600'}`}
+                aria-invalid={!!validationErrors.industry}
+                aria-describedby={validationErrors.industry ? "industry-error" : undefined}
               />
+              {validationErrors.industry && <p id="industry-error" className="mt-1 text-sm text-red-600 dark:text-red-400">Industry / Environment is required.</p>}
             </div>
             <div>
               <label htmlFor="task" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Specific Task</label>
               <textarea
                 id="task"
                 value={task}
-                onChange={(e) => setTask(e.target.value)}
+                onChange={(e) => {
+                    setTask(e.target.value);
+                    if (validationErrors.task) {
+                        setValidationErrors(prev => ({...prev, task: false}));
+                    }
+                }}
                 placeholder="e.g., Welding steel beams"
                 rows={1}
-                className="mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm resize-y transition-colors"
+                className={`mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-800 border rounded-md shadow-sm placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm resize-y transition-colors ${validationErrors.task ? 'border-red-500' : 'border-slate-300 dark:border-slate-600'}`}
+                aria-invalid={!!validationErrors.task}
+                aria-describedby={validationErrors.task ? "task-error" : undefined}
               />
+              {validationErrors.task && <p id="task-error" className="mt-1 text-sm text-red-600 dark:text-red-400">Specific Task is required.</p>}
             </div>
             <div className="md:col-span-2">
               <label htmlFor="equipment" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Equipment Involved (Optional)</label>
@@ -405,8 +458,8 @@ const App: React.FC = () => {
             {isLoading ? (
               <div className="text-center py-12" role="status">
                 <Loader2 className="mx-auto h-12 w-12 animate-spin text-amber-500" />
-                <p className="mt-4 text-lg font-medium text-slate-700 dark:text-slate-300">Generating your checklist...</p>
-                <p className="text-slate-500 dark:text-slate-400">This may take a moment.</p>
+                <p className="mt-4 text-lg font-medium text-slate-700 dark:text-slate-300">{loadingMessage}</p>
+                <p className="text-slate-500 dark:text-slate-400">AI is crafting your document, please wait.</p>
               </div>
             ) : checklist && (
               <>
