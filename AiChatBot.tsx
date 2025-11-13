@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI, Chat } from '@google/genai';
 import { MessageSquare, Send, X, Bot, User, AlertTriangle } from 'lucide-react';
 // Fix: Use relative paths for imports to resolve module loading errors.
-import { Message, ErrorState } from '../types.ts';
-import { getApiErrorState } from '../services/errorHandler.ts';
+import { Message, ErrorState } from '../types';
+import { getApiErrorState } from '../services/errorHandler';
 
 const AiChatBot: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
