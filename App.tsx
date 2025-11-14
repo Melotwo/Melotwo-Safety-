@@ -1,21 +1,23 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI } from "@google/genai";
 import { Loader2, Package, Save, AlertTriangle, ShieldCheck, Printer, FileDown, Copy } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
-import Navbar from './components/Navbar.tsx';
-import Footer from './components/Footer.tsx';
-import MarkdownRenderer from './components/MarkdownRenderer.tsx';
-import QuoteModal from './components/QuoteModal.tsx';
-import SavedChecklistsModal from './components/SavedChecklistsModal.tsx';
-import ProductCard from './components/ProductCard.tsx';
-import Toast from './components/Toast.tsx';
-import AiChatBot from './components/AiChatBot.tsx';
-import QrCodeModal from './components/QrCodeModal.tsx';
-import { PPE_PRODUCTS, exampleScenarios } from './constants.ts';
-import { PpeProduct, SavedChecklist, ErrorState, ValidationErrors } from './types.ts';
-import { getApiErrorState } from './services/errorHandler.ts';
+// FIX: Replaced path aliases with relative paths to resolve module loading errors.
+import Navbar from './components/Navbar';
+import Footer from './components/Footer';
+import MarkdownRenderer from './components/MarkdownRenderer';
+import QuoteModal from './components/QuoteModal';
+import SavedChecklistsModal from './components/SavedChecklistsModal';
+import ProductCard from './components/ProductCard';
+import Toast from './components/Toast';
+import AiChatBot from './components/AiChatBot';
+import QrCodeModal from './components/QrCodeModal';
+import { PPE_PRODUCTS, exampleScenarios } from './constants/index';
+import { PpeProduct, SavedChecklist, ErrorState, ValidationErrors } from './types/index';
+import { getApiErrorState } from './services/errorHandler';
 
 
 const LOADING_MESSAGES = [
@@ -230,7 +232,6 @@ const App: React.FC = () => {
         backgroundColor: wasDark ? '#0f172a' : '#ffffff',
         useCORS: true,
         onclone: (doc) => {
-          // FIX: Cast element to HTMLElement to access style property.
           doc.querySelectorAll('input[type=checkbox]').forEach(el => (el as HTMLElement).style.display = 'none');
           doc.querySelector('.print-area')?.classList.add('dark:bg-slate-900');
         }
