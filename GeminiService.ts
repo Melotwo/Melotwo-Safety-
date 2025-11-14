@@ -74,3 +74,4 @@ export const generateChecklistFromApi = async ({
     recommendedPpe: ppeIds,
     totalChecklistItems: totalItems,
   };
+};
