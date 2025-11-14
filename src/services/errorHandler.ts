@@ -1,6 +1,5 @@
 import React from 'react';
-// FIX: Removed file extension from type import.
-import { ErrorState } from '@/types';
+import { ErrorState } from '@/types/index.ts';
 
 /**
  * Processes an unknown error from an API call and returns a structured ErrorState object
@@ -66,7 +65,7 @@ export const getApiErrorState = (err: unknown): ErrorState => {
       } else if (lowerCaseMessage.includes('500') || lowerCaseMessage.includes('server error') || lowerCaseMessage.includes('internal error')) {
            errorState = {
               title: 'AI Service Error',
-              message: 'The AI service encountered an internal error and could not complete your request. This is likely a temporary issue. Please try again in a few moments.',
+              message: 'The AI service encountered an internal error and could not complete your request. This is a likely a temporary issue. Please try again in a few moments.',
           };
       } else if (lowerCaseMessage.includes('resource has been exhausted')) {
           errorState = {
