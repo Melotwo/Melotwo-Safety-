@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI, Chat } from '@google/genai';
 import { MessageSquare, Send, X, Bot, User, AlertTriangle } from 'lucide-react';
-import { Message, ErrorState } from '../types';
-import { getApiErrorState } from '../services/errorHandler';
+import { Message, ErrorState } from '../types.ts';
+import { getApiErrorState } from '../services/errorHandler.ts';
 
 const AiChatBot: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -23,6 +23,9 @@ const AiChatBot: React.FC = () => {
     useEffect(() => {
         if (isOpen) {
             inputRef.current?.focus();
+            if (!chatRef.current) {
+                initializeChat();
+            }
         }
     }, [isOpen]);
 
@@ -60,14 +63,10 @@ const AiChatBot: React.FC = () => {
         setIsLoading(true);
 
         if (!chatRef.current) {
-            initializeChat();
-        }
-
-        if (!chatRef.current) {
              setIsLoading(false);
              setError({
                  title: "Initialization Failed",
-                 message: "Chat could not be initialized. Please check your API Key configuration and try again."
+                 message: "Chat has not been initialized. Please close and reopen the chat window."
              });
              return;
         }
@@ -82,8 +81,8 @@ const AiChatBot: React.FC = () => {
                 currentResponse += chunk.text;
                 setMessages(prev => {
                     const newMessages = [...prev];
-                    if (newMessages.length > 0) {
-                      newMessages[newMessages.length - 1] = {...newMessages[newMessages.length-1], content: currentResponse};
+                    if (newMessages.length > 0 && newMessages[newMessages.length - 1].role === 'model') {
+                      newMessages[newMessages.length - 1].content = currentResponse;
                     }
                     return newMessages;
                 });
@@ -92,7 +91,13 @@ const AiChatBot: React.FC = () => {
         } catch (err) {
             setError(getApiErrorState(err));
             // Remove the optimistic model response placeholder on error
-            setMessages(prev => prev.slice(0, -1));
+            setMessages(prev => {
+                const lastMessage = prev[prev.length - 1];
+                if (lastMessage && lastMessage.role === 'model' && lastMessage.content === '') {
+                    return prev.slice(0, -1);
+                }
+                return prev;
+            });
         } finally {
             setIsLoading(false);
             inputRef.current?.focus();
