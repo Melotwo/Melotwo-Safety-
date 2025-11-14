@@ -1,8 +1,9 @@
 
+
 import React from 'react';
 import { ShoppingCart } from 'lucide-react';
 // FIX: Update import path to be more specific to resolve module loading error.
-import { PpeProduct } from '@/types/index';
+import { PpeProduct } from '@/types/index.ts';
 
 const ProductCard: React.FC<{
   product: PpeProduct;
