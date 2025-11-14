@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI, Chat } from '@google/genai';
 import { MessageSquare, Send, X, Bot, User, AlertTriangle } from 'lucide-react';
-import { Message, ErrorState } from '../types.ts';
-import { getApiErrorState } from '../services/errorHandler.ts';
+import { Message, ErrorState } from '@/types/index.ts';
+import { getApiErrorState } from '@/services/errorHandler.ts';
 
 const AiChatBot: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -36,7 +36,6 @@ const AiChatBot: React.FC = () => {
     
     const initializeChat = () => {
         try {
-            // Fix: Adhere to API key guidelines by using process.env.API_KEY directly.
             const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
             chatRef.current = ai.chats.create({
               model: 'gemini-2.5-flash',
