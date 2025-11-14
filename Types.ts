@@ -38,3 +38,11 @@ export interface Message {
   role: 'user' | 'model';
   content: string;
 }
+
+/**
+ * Defines the structure for equipment categories for the multi-select dropdown.
+ */
+export interface EquipmentCategory {
+  category: string;
+  items: string[];
+}
