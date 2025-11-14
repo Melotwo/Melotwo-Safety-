@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Check, X, Mail, User, Building, Loader2 } from 'lucide-react';
-import { PpeProduct } from '../types.ts';
+import { PpeProduct } from '../types';
 
 const QuoteModal: React.FC<{
   isOpen: boolean;
