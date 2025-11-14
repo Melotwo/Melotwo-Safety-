@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI } from "@google/genai";
 import { Loader2, Package, Save, AlertTriangle, ShieldCheck, Printer, FileDown, Copy } from 'lucide-react';
@@ -17,7 +18,7 @@ import QrCodeModal from './components/QrCodeModal';
 import MultiSelectDropdown from './components/MultiSelectDropdown';
 // FIX: Update import path to correct constants file to resolve module and type errors.
 import { PPE_PRODUCTS, exampleScenarios, INDUSTRIES, TASKS_BY_INDUSTRY, EQUIPMENT_CATEGORIES } from './constants/index';
-import { PpeProduct, SavedChecklist, ErrorState, ValidationErrors } from './types';
+import { PpeProduct, SavedChecklist, ErrorState, ValidationErrors } from './types/index';
 import { getApiErrorState } from './services/errorHandler';
 
 
