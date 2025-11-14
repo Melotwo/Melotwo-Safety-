@@ -1,10 +1,10 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-// Fix: Use relative path for import to resolve module loading error.
-import App from './App';
+// Fix: Use relative path with file extension for import to resolve module loading error.
+import App from './App.tsx';
 import './index.css';
-// Fix: Use relative path for import to resolve module loading error.
-import ErrorBoundary from './components/ErrorBoundary';
+// Fix: Use relative path with file extension for import to resolve module loading error.
+import ErrorBoundary from './components/ErrorBoundary.tsx';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
