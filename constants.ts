@@ -29,7 +29,7 @@ export const PPE_PRODUCTS: PpeProduct[] = [
     name: 'Steel-Toed Safety Boots',
     keywords: ['boots', 'footwear', 'foot protection', 'steel-toed'],
     description: 'Puncture-proof sole and certified steel toe cap. Waterproof and slip-resistant.',
-    image: 'https://images.unsplash.com/photo-16288135741-f358e6503c5d?q=80&w=800&auto=format&fit=crop',
+    image: 'https://images.unsplash.com/photo-162881635741-f358e6503c5d?q=80&w=800&auto=format&fit=crop',
   },
 ];
 
