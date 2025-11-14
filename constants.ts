@@ -1,7 +1,6 @@
 import React from 'react';
 import { Building, Factory, Wrench } from 'lucide-react';
-// Fix: Use relative path for import to resolve module loading error.
-import { PpeProduct } from './types';
+import { PpeProduct } from './types.ts';
 
 export const PPE_PRODUCTS: PpeProduct[] = [
   {
