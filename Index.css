@@ -6,6 +6,7 @@
   font-family: 'Inter', sans-serif; 
   --amber-500: #f59e0b;
   --slate-950: #020617;
+  --slate-50: #f8fafc;
 }
 @supports (font-variation-settings: normal) {
   :root { font-family: 'Inter var', sans-serif; }
@@ -13,19 +14,23 @@
 
 html {
   scrollbar-width: thin;
-  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+  scrollbar-color: rgba(156, 163, 175, 0.5) var(--slate-50);
 }
 
 .dark html {
-  scrollbar-color: rgba(100, 116, 139, 0.5) transparent;
+  scrollbar-color: rgba(100, 116, 139, 0.5) var(--slate-950);
 }
 
 body {
-  @apply bg-gradient-to-br from-slate-50 to-slate-100;
+  @apply bg-slate-50;
+  background-image: radial-gradient(rgba(0, 0, 0, 0.04) 1px, transparent 0);
+  background-size: 30px 30px;
+  background-position: -15px -15px;
 }
 
 .dark body {
-  @apply bg-gradient-to-br from-slate-950 to-slate-900;
+  @apply bg-slate-950;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 0);
 }
 
 /* Custom scrollbar for Webkit browsers */
@@ -33,7 +38,7 @@ body {
   width: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: transparent;
+  @apply bg-slate-50 dark:bg-slate-950;
 }
 ::-webkit-scrollbar-thumb {
   background-color: rgba(156, 163, 175, 0.5);
@@ -56,9 +61,8 @@ body {
   border-radius: 4px;
 }
 
-/* Add smooth transitions to form elements */
-input, textarea, button {
-  transition: all 0.2s ease-in-out;
+.action-button {
+    @apply inline-flex items-center justify-center px-3 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm transition-colors;
 }
 
 @media print {
