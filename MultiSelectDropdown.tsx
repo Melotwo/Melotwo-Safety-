@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChevronDown, X, Search } from 'lucide-react';
-import { EquipmentCategory } from '../types.ts';
+import { EquipmentCategory } from '../types';
 
 interface MultiSelectDropdownProps {
   options: EquipmentCategory[];
