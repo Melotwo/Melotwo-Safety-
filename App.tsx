@@ -5,19 +5,19 @@ import { Loader2, Package, Save, AlertTriangle, ShieldCheck, Printer, FileDown, 
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
-// FIX: Replaced path aliases with relative paths to resolve module loading errors.
-import Navbar from './components/Navbar';
-import Footer from './components/Footer';
-import MarkdownRenderer from './components/MarkdownRenderer';
-import QuoteModal from './components/QuoteModal';
-import SavedChecklistsModal from './components/SavedChecklistsModal';
-import ProductCard from './components/ProductCard';
-import Toast from './components/Toast';
-import AiChatBot from './components/AiChatBot';
-import QrCodeModal from './components/QrCodeModal';
-import { PPE_PRODUCTS, exampleScenarios } from './constants/index';
-import { PpeProduct, SavedChecklist, ErrorState, ValidationErrors } from './types/index';
-import { getApiErrorState } from './services/errorHandler';
+import Navbar from './components/Navbar.tsx';
+import Footer from './components/Footer.tsx';
+import MarkdownRenderer from './components/MarkdownRenderer.tsx';
+import QuoteModal from './components/QuoteModal.tsx';
+import SavedChecklistsModal from './components/SavedChecklistsModal.tsx';
+import ProductCard from './components/ProductCard.tsx';
+import Toast from './components/Toast.tsx';
+import AiChatBot from './components/AiChatBot.tsx';
+import QrCodeModal from './components/QrCodeModal.tsx';
+import MultiSelectDropdown from './components/MultiSelectDropdown.tsx';
+import { PPE_PRODUCTS, exampleScenarios, INDUSTRIES, TASKS_BY_INDUSTRY, EQUIPMENT_CATEGORIES } from './constants/index.ts';
+import { PpeProduct, SavedChecklist, ErrorState, ValidationErrors } from './types/index.ts';
+import { getApiErrorState } from './services/errorHandler.ts';
 
 
 const LOADING_MESSAGES = [
@@ -31,7 +31,7 @@ const LOADING_MESSAGES = [
 const App: React.FC = () => {
   const [industry, setIndustry] = useState('');
   const [task, setTask] = useState('');
-  const [equipment, setEquipment] = useState('');
+  const [equipment, setEquipment] = useState<string[]>([]);
   const [specificDetails, setSpecificDetails] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<ErrorState | null>(null);
@@ -106,6 +106,16 @@ const App: React.FC = () => {
     setToastMessage(message);
   }
 
+  const handleIndustryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newIndustry = e.target.value;
+    setIndustry(newIndustry);
+    setTask(''); // Reset task when industry changes
+  };
+
+  const handleTaskTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setTask(e.target.value);
+  };
+
   const generateChecklist = async () => {
     const newValidationErrors: ValidationErrors = {};
     if (!industry.trim()) newValidationErrors.industry = "Industry / Environment is required.";
@@ -138,7 +148,7 @@ const App: React.FC = () => {
         **Scenario Details:**
         - **Industry/Environment:** ${industry}
         - **Specific Task:** ${task}
-        - **Tools/Equipment Used:** ${equipment || 'Not specified'}
+        - **Tools/Equipment Used:** ${equipment.length > 0 ? equipment.join(', ') : 'Not specified'}
         - **Other Specific Details:** ${specificDetails || 'None'}
 
         The checklist should be broken down into logical sections using '##' for headings (e.g., ## Pre-Task Setup, ## During the Task, ## Post-Task Cleanup). Each item in the checklist should start with '* '.
@@ -280,25 +290,50 @@ const App: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label htmlFor="industry" className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Industry / Environment <span className="text-red-500">*</span></label>
-              <input type="text" id="industry" value={industry} onChange={e => setIndustry(e.target.value)} placeholder="e.g., Construction Site, Warehouse" aria-required="true" className="mt-1 block w-full px-4 py-2 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-lg focus:ring-amber-500 focus:border-amber-500" />
+              <select
+                id="industry"
+                value={industry}
+                onChange={handleIndustryChange}
+                aria-required="true"
+                className="mt-1 block w-full px-4 py-2 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-lg focus:ring-amber-500 focus:border-amber-500"
+              >
+                <option value="" disabled>Select an industry...</option>
+                {INDUSTRIES.map(ind => <option key={ind} value={ind}>{ind}</option>)}
+              </select>
               {validationErrors.industry && <p className="text-red-500 text-sm mt-1">{validationErrors.industry}</p>}
             </div>
             <div>
-              <label htmlFor="task" className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Specific Task <span className="text-red-500">*</span></label>
-              <input type="text" id="task" value={task} onChange={e => setTask(e.target.value)} placeholder="e.g., Welding steel beams" aria-required="true" className="mt-1 block w-full px-4 py-2 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-lg focus:ring-amber-500 focus:border-amber-500" />
+              <label htmlFor="task-type" className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Task Type <span className="text-slate-400 font-normal">(Optional)</span></label>
+              <select
+                  id="task-type"
+                  value={task}
+                  onChange={handleTaskTypeChange}
+                  disabled={!industry}
+                  className="mt-1 block w-full px-4 py-2 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-lg focus:ring-amber-500 focus:border-amber-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                  <option value="" disabled>{industry ? 'Select a common task...' : 'Select industry first'}</option>
+                  {(TASKS_BY_INDUSTRY[industry] || []).map(taskType => (
+                      <option key={taskType} value={taskType}>{taskType}</option>
+                  ))}
+              </select>
+            </div>
+            <div className="md:col-span-2">
+              <label htmlFor="task" className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Specific Task Description <span className="text-red-500">*</span></label>
+              <input type="text" id="task" value={task} onChange={e => setTask(e.target.value)} placeholder="e.g., Welding steel beams (or select a type above)" aria-required="true" className="mt-1 block w-full px-4 py-2 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-lg focus:ring-amber-500 focus:border-amber-500" />
               {validationErrors.task && <p className="text-red-500 text-sm mt-1">{validationErrors.task}</p>}
             </div>
-            <div>
-              <label htmlFor="equipment" className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                Tools / Equipment <span className="text-slate-400 font-normal">(Optional)</span>
-              </label>
-              <input type="text" id="equipment" value={equipment} onChange={e => setEquipment(e.target.value)} placeholder="e.g., Arc welder, forklift" className="mt-1 block w-full px-4 py-2 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-lg focus:ring-amber-500 focus:border-amber-500" />
+            <div className="md:col-span-2">
+              <MultiSelectDropdown
+                  options={EQUIPMENT_CATEGORIES}
+                  selectedItems={equipment}
+                  onChange={setEquipment}
+              />
             </div>
-            <div>
+            <div className="md:col-span-2">
               <label htmlFor="details" className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                Other Details <span className="text-slate-400 font-normal">(Optional)</span>
+                Other Specific Details <span className="text-slate-400 font-normal">(Optional)</span>
               </label>
-              <input type="text" id="details" value={specificDetails} onChange={e => setSpecificDetails(e.target.value)} placeholder="e.g., Working at height, windy" className="mt-1 block w-full px-4 py-2 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-lg focus:ring-amber-500 focus:border-amber-500" />
+              <input type="text" id="details" value={specificDetails} onChange={e => setSpecificDetails(e.target.value)} placeholder="e.g., Working at height, windy conditions" className="mt-1 block w-full px-4 py-2 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-lg focus:ring-amber-500 focus:border-amber-500" />
             </div>
           </div>
           
