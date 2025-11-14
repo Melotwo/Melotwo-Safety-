@@ -1,7 +1,8 @@
 
+
 import React from 'react';
 // FIX: Update import path to be more specific to resolve module loading error.
-import { ErrorState } from '@/types/index';
+import { ErrorState } from '@/types/index.ts';
 
 /**
  * Processes an unknown error from an API call and returns a structured ErrorState object
