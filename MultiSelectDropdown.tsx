@@ -1,8 +1,9 @@
 
+
 import React, { useState, useRef, useEffect } from 'react';
 import { ChevronDown, X, Search } from 'lucide-react';
 // FIX: Update import path to be more specific to resolve module loading error.
-import { EquipmentCategory } from '@/types/index';
+import { EquipmentCategory } from '@/types/index.ts';
 
 interface MultiSelectDropdownProps {
   options: EquipmentCategory[];
