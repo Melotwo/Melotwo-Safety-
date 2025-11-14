@@ -1,11 +1,6 @@
-
-
 import React from 'react';
 import { Building, Factory, Wrench } from 'lucide-react';
-// FIX: Updated path to use alias for consistency.
-// FIX: Replaced ambiguous path alias with a specific path to resolve module loading error.
-// FIX: Corrected import path to resolve module loading error by pointing to the index file.
-import { PpeProduct } from '@/types/index.ts';
+import { PpeProduct, EquipmentCategory } from './types.ts';
 
 export const PPE_PRODUCTS: PpeProduct[] = [
   {
@@ -34,33 +29,110 @@ export const PPE_PRODUCTS: PpeProduct[] = [
     name: 'Steel-Toed Safety Boots',
     keywords: ['boots', 'footwear', 'foot protection', 'steel-toed'],
     description: 'Puncture-proof sole and certified steel toe cap. Waterproof and slip-resistant.',
-    image: 'https://images.unsplash.com/photo-1628813635741-f358e6503c5d?q=80&w=800&auto=format&fit=crop',
+    image: 'https://images.unsplash.com/photo-16288135741-f358e6503c5d?q=80&w=800&auto=format&fit=crop',
   },
 ];
+
+export const INDUSTRIES = [
+  'Construction',
+  'Manufacturing & Industrial',
+  'Warehouse & Logistics',
+  'Healthcare & Medical',
+  'Energy, Oil & Gas',
+  'Food Service & Hospitality',
+  'General Office',
+];
+
+export const TASKS_BY_INDUSTRY: Record<string, string[]> = {
+  'Construction': [
+    'Welding steel beams',
+    'Operating heavy machinery (e.g., excavator)',
+    'Working at height on scaffolding',
+    'Concrete pouring and finishing',
+    'Electrical wiring and installation',
+    'Demolition work',
+  ],
+  'Manufacturing & Industrial': [
+    'Operating CNC machinery',
+    'Assembling electronic components',
+    'Handling chemical substances',
+    'Quality control inspection on a production line',
+    'Machine maintenance and repair',
+  ],
+  'Warehouse & Logistics': [
+    'Operating a forklift',
+    'Loading and unloading trucks',
+    'Picking and packing orders',
+    'Inventory management with pallet jacks',
+  ],
+  'Healthcare & Medical': [
+    'Patient handling and transport',
+    'Administering medication',
+    'Handling biohazardous waste',
+    'Performing laboratory tests',
+  ],
+  'Energy, Oil & Gas': [
+    'Drilling operations',
+    'Pipeline inspection and maintenance',
+    'Working in confined spaces (e.g., tanks)',
+    'Handling flammable materials',
+  ],
+  'Food Service & Hospitality': [
+    'Operating deep fryers and grills',
+    'Using commercial slicing equipment',
+    'Handling cleaning chemicals',
+    'Working in a walk-in freezer',
+  ],
+  'General Office': [
+    'Ergonomic workstation setup',
+    'Emergency evacuation procedures',
+    'Using standard office equipment',
+  ]
+};
+
+export const EQUIPMENT_CATEGORIES: EquipmentCategory[] = [
+  {
+    category: 'Heavy Machinery',
+    items: ['Forklift', 'Excavator', 'Crane', 'Bulldozer', 'Pallet Jack', 'Scissor Lift', 'Boom Lift'],
+  },
+  {
+    category: 'Power Tools',
+    items: ['Arc Welder', 'Drill', 'Grinder', 'Circular Saw', 'Nail Gun', 'Jackhammer', 'Chainsaw'],
+  },
+  {
+    category: 'Safety & Access',
+    items: ['Scaffolding', 'Ladder', 'Harness', 'Winch', 'Ventilation Fan', 'Gas Detector'],
+  },
+  {
+    category: 'General Tools',
+    items: ['Fire Extinguisher', 'Hand Trolley', 'Cutting Tools', 'Pressure Washer'],
+  }
+];
+
 
 export const exampleScenarios = [
   {
     icon: React.createElement(Building, { className: "w-8 h-8 text-amber-500 flex-shrink-0" }),
     title: 'Construction Welding',
-    industry: 'High-rise Construction Site',
+    industry: 'Construction',
     task: 'Welding steel support beams on the 3rd floor',
-    equipment: 'Arc Welder, Scaffolding, Fire Extinguisher',
+    equipment: ['Arc Welder', 'Scaffolding', 'Fire Extinguisher', 'Grinder'],
     details: 'Working on an open-air platform at a height of 30 meters. Mildly windy conditions.',
   },
   {
     icon: React.createElement(Factory, { className: "w-8 h-8 text-amber-500 flex-shrink-0" }),
     title: 'Warehouse Forklift',
-    industry: 'Busy Distribution Warehouse',
+    industry: 'Warehouse & Logistics',
     task: 'Operating a forklift to move pallets from receiving to storage racks',
-    equipment: 'Propane Forklift, Pallet Jack',
+    equipment: ['Forklift', 'Pallet Jack'],
     details: 'Narrow aisles with pedestrian traffic. Indoor, fluorescent lighting.',
   },
   {
     icon: React.createElement(Wrench, { className: "w-8 h-8 text-amber-500 flex-shrink-0" }),
     title: 'Confined Space Entry',
-    industry: 'Wastewater Treatment Plant',
+    industry: 'Energy, Oil & Gas',
     task: 'Entering a drainage tank for routine inspection and maintenance',
-    equipment: 'Gas Detector, Harness, Winch, Ventilation Fan',
+    equipment: ['Gas Detector', 'Harness', 'Winch', 'Ventilation Fan'],
     details: 'Space is 5 meters deep with a 60cm entry hatch. Potential for hazardous gases and low oxygen levels.',
   }
 ];
