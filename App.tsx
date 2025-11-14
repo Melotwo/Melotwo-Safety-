@@ -3,20 +3,20 @@ import { Loader2, Package, Save, AlertTriangle, ShieldCheck, Printer, FileDown, 
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
-import Navbar from './components/Navbar';
-import Footer from './components/Footer';
-import MarkdownRenderer from './components/MarkdownRenderer';
-import QuoteModal from './components/QuoteModal';
-import SavedChecklistsModal from './components/SavedChecklistsModal';
-import ProductCard from './components/ProductCard';
-import Toast from './components/Toast';
-import AiChatBot from './components/AiChatBot';
-import QrCodeModal from './components/QrCodeModal';
-import MultiSelectDropdown from './components/MultiSelectDropdown';
-import { PPE_PRODUCTS, exampleScenarios, INDUSTRIES, TASKS_BY_INDUSTRY, EQUIPMENT_CATEGORIES } from './constants';
-import { PpeProduct, SavedChecklist, ErrorState, ValidationErrors } from './types';
-import { getApiErrorState } from './services/errorHandler';
-import { generateChecklistFromApi } from './services/geminiService';
+import Navbar from './components/Navbar.tsx';
+import Footer from './components/Footer.tsx';
+import MarkdownRenderer from './components/MarkdownRenderer.tsx';
+import QuoteModal from './components/QuoteModal.tsx';
+import SavedChecklistsModal from './components/SavedChecklistsModal.tsx';
+import ProductCard from './components/ProductCard.tsx';
+import Toast from './components/Toast.tsx';
+import AiChatBot from './components/AiChatBot.tsx';
+import QrCodeModal from './components/QrCodeModal.tsx';
+import MultiSelectDropdown from './components/MultiSelectDropdown.tsx';
+import { PPE_PRODUCTS, exampleScenarios, INDUSTRIES, TASKS_BY_INDUSTRY, EQUIPMENT_CATEGORIES } from './constants.ts';
+import { PpeProduct, SavedChecklist, ErrorState, ValidationErrors } from './types.ts';
+import { getApiErrorState } from './services/errorHandler.ts';
+import { generateChecklistFromApi } from './services/geminiService.ts';
 
 
 const LOADING_MESSAGES = [
