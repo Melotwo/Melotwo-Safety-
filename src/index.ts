@@ -1,6 +1,8 @@
+
 import React from 'react';
 import { Building, Factory, Wrench } from 'lucide-react';
-import { PpeProduct, EquipmentCategory } from '@/types/index.ts';
+// FIX: Update import path to be more specific to resolve module loading error.
+import { PpeProduct, EquipmentCategory } from '@/types/index';
 
 export const PPE_PRODUCTS: PpeProduct[] = [
   {
