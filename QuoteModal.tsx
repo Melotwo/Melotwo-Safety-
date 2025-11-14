@@ -1,8 +1,9 @@
 
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Check, X, Mail, User, Building, Loader2 } from 'lucide-react';
 // FIX: Update import path to be more specific to resolve module loading error.
-import { PpeProduct } from '@/types/index';
+import { PpeProduct } from '@/types/index.ts';
 
 const QuoteModal: React.FC<{
   isOpen: boolean;
@@ -138,9 +139,3 @@ const QuoteModal: React.FC<{
             </>
           )}
         </div>
-      </div>
-    </div>
-  );
-};
-
-export default QuoteModal;
