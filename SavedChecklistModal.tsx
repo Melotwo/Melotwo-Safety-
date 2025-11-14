@@ -1,9 +1,6 @@
-
-
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Bookmark, Eye, Trash2, ArrowLeft } from 'lucide-react';
-// FIX: Update import path to be more specific to resolve module loading error.
-import { SavedChecklist } from '@/types/index.ts';
+import { SavedChecklist } from '../types.ts';
 import MarkdownRenderer from './MarkdownRenderer.tsx';
 
 const SavedChecklistsModal: React.FC<{
