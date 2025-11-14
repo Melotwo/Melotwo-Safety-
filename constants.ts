@@ -4,7 +4,8 @@ import React from 'react';
 import { Building, Factory, Wrench } from 'lucide-react';
 // FIX: Updated path to use alias for consistency.
 // FIX: Replaced ambiguous path alias with a specific path to resolve module loading error.
-import { PpeProduct } from '@/types';
+// FIX: Corrected import path to resolve module loading error by pointing to the index file.
+import { PpeProduct } from '@/types/index';
 
 export const PPE_PRODUCTS: PpeProduct[] = [
   {
