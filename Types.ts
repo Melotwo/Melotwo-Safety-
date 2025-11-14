@@ -4,7 +4,7 @@ export interface PpeProduct {
   id: string;
   name: string;
   keywords: string[];
-  description: string;
+  description:string;
   image: string;
 }
 
