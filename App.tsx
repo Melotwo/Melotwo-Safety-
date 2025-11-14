@@ -408,5 +408,4 @@ const App: React.FC = () => {
   );
 };
 
-// FIX: Add default export for the App component.
 export default App;
