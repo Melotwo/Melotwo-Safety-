@@ -3,20 +3,21 @@ import { Loader2, Package, Save, AlertTriangle, ShieldCheck, Printer, FileDown, 
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
-import Navbar from './components/Navbar';
-import Footer from './components/Footer';
-import MarkdownRenderer from './components/MarkdownRenderer';
-import QuoteModal from './components/QuoteModal';
-import SavedChecklistsModal from './components/SavedChecklistsModal';
-import ProductCard from './components/ProductCard';
-import Toast from './components/Toast';
-import AiChatBot from './components/AiChatBot';
-import QrCodeModal from './components/QrCodeModal';
-import MultiSelectDropdown from './components/MultiSelectDropdown';
-import { PPE_PRODUCTS, exampleScenarios, INDUSTRIES, TASKS_BY_INDUSTRY, EQUIPMENT_CATEGORIES } from './constants';
-import { PpeProduct, SavedChecklist, ErrorState, ValidationErrors } from './types';
-import { getApiErrorState } from './services/errorHandler';
-import { generateChecklistFromApi } from './services/geminiService';
+import Navbar from './components/Navbar.tsx';
+import Footer from './components/Footer.tsx';
+import MarkdownRenderer from './components/MarkdownRenderer.tsx';
+import QuoteModal from './components/QuoteModal.tsx';
+import SavedChecklistsModal from './components/SavedChecklistsModal.tsx';
+import ProductCard from './components/ProductCard.tsx';
+import Toast from './components/Toast.tsx';
+import AiChatBot from './components/AiChatBot.tsx';
+import QrCodeModal from './components/QrCodeModal.tsx';
+import MultiSelectDropdown from './components/MultiSelectDropdown.tsx';
+import GenerationHistory from './components/GenerationHistory.tsx';
+import { PPE_PRODUCTS, exampleScenarios, INDUSTRIES, TASKS_BY_INDUSTRY, EQUIPMENT_CATEGORIES } from './constants.ts';
+import { PpeProduct, SavedChecklist, ErrorState, ValidationErrors, GenerationHistoryItem } from './types.ts';
+import { getApiErrorState } from './services/errorHandler.ts';
+import { generateChecklistFromApi } from './services/geminiService.ts';
 
 
 const LOADING_MESSAGES = [
@@ -40,6 +41,7 @@ const App: React.FC = () => {
   const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<PpeProduct | null>(null);
   const [savedChecklists, setSavedChecklists] = useState<SavedChecklist[]>([]);
+  const [generationHistory, setGenerationHistory] = useState<GenerationHistoryItem[]>([]);
   const [isSavedModalOpen, setIsSavedModalOpen] = useState(false);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
@@ -71,8 +73,12 @@ const App: React.FC = () => {
       if (storedChecklists) {
         setSavedChecklists(JSON.parse(storedChecklists));
       }
+      const storedHistory = localStorage.getItem('generationHistory');
+      if (storedHistory) {
+        setGenerationHistory(JSON.parse(storedHistory));
+      }
     } catch (e) {
-      console.error("Failed to parse saved checklists from localStorage", e);
+      console.error("Failed to parse data from localStorage", e);
     }
   }, []);
 
@@ -144,6 +150,21 @@ const App: React.FC = () => {
       setRecommendedPpe(result.recommendedPpe);
       setTotalChecklistItems(result.totalChecklistItems);
       setChecklist(result.checklist);
+
+      // Add to generation history
+      const newHistoryItem: GenerationHistoryItem = {
+        id: Date.now(),
+        industry,
+        task,
+        equipment,
+        specificDetails,
+        timestamp: new Date().toLocaleString(),
+      };
+      setGenerationHistory(prev => {
+        const updatedHistory = [newHistoryItem, ...prev].slice(0, 10);
+        localStorage.setItem('generationHistory', JSON.stringify(updatedHistory));
+        return updatedHistory;
+      });
 
     } catch (e) {
       setError(getApiErrorState(e));
@@ -231,6 +252,22 @@ const App: React.FC = () => {
     }
   };
 
+  const handleHistoryItemClick = (item: GenerationHistoryItem) => {
+    setIndustry(item.industry);
+    setTask(item.task);
+    setEquipment(item.equipment);
+    setSpecificDetails(item.specificDetails);
+    setChecklist(null);
+    setError(null);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleClearHistory = () => {
+    setGenerationHistory([]);
+    localStorage.removeItem('generationHistory');
+    showToast('Generation history cleared.');
+  };
+
   return (
     <div className={`flex flex-col min-h-screen font-sans antialiased ${isDarkMode ? 'dark' : ''}`}>
       <Navbar onThemeToggle={toggleTheme} isDarkMode={isDarkMode} onOpenSaved={() => setIsSavedModalOpen(true)} savedCount={savedChecklists.length} onOpenQrCode={() => setIsQrModalOpen(true)} />
@@ -303,7 +340,7 @@ const App: React.FC = () => {
               {exampleScenarios.map(scenario => (
                 <button key={scenario.title} onClick={() => handleExampleClick(scenario)} className="group text-left p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20 border-2 border-slate-200 dark:border-slate-800 hover:border-amber-200 dark:hover:border-amber-800 transition-all">
                   <div className="flex items-start gap-4">
-                    {scenario.icon}
+                    <scenario.IconComponent className="w-8 h-8 text-amber-500 flex-shrink-0" />
                     <div>
                       <h3 className="font-semibold text-slate-800 dark:text-slate-200 group-hover:text-amber-700 dark:group-hover:text-amber-300">{scenario.title}</h3>
                       <p className="text-xs text-slate-500 dark:text-slate-400">{scenario.task}</p>
@@ -331,6 +368,12 @@ const App: React.FC = () => {
             </button>
           </div>
         </section>
+        
+        <GenerationHistory
+          history={generationHistory}
+          onItemClick={handleHistoryItemClick}
+          onClear={handleClearHistory}
+        />
 
         {error && (
           <div role="alert" className="mt-8 p-4 rounded-lg bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 animate-slide-in">
