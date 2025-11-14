@@ -1,140 +1,137 @@
 
-import React from 'react';
-import { Building, Factory, Wrench } from 'lucide-react';
+
+import React, { useState, useRef, useEffect } from 'react';
+import { ChevronDown, X, Search } from 'lucide-react';
 // FIX: Update import path to be more specific to resolve module loading error.
-import { PpeProduct, EquipmentCategory } from '@/types/index';
+import { EquipmentCategory } from '@/types/index.ts';
 
-export const PPE_PRODUCTS: PpeProduct[] = [
-  {
-    id: 'hh-001',
-    name: 'Industrial Hard Hat',
-    keywords: ['hard hat', 'head protection', 'helmet'],
-    description: 'SABS approved for impact resistance. Comfortable and adjustable for all-day wear.',
-    image: 'https://images.unsplash.com/photo-1581092570025-a5a4d6a1d1d8?q=80&w=800&auto=format&fit=crop',
-  },
-  {
-    id: 'sg-002',
-    name: 'Safety Goggles',
-    keywords: ['goggles', 'eye protection', 'safety glasses'],
-    description: 'Anti-fog, scratch-resistant lenses with full UV protection. Wraparound design for maximum coverage.',
-    image: 'https://images.unsplash.com/photo-1628882799342-31b2d433d832?q=80&w=800&auto=format&fit=crop',
-  },
-  {
-    id: 'gl-003',
-    name: 'Heavy-Duty Work Gloves',
-    keywords: ['gloves', 'hand protection'],
-    description: 'Reinforced leather palm for high abrasion resistance. Ideal for handling rough materials.',
-    image: 'https://images.unsplash.com/photo-1590390190363-356a5293a557?q=80&w=800&auto=format&fit=crop',
-  },
-  {
-    id: 'sb-004',
-    name: 'Steel-Toed Safety Boots',
-    keywords: ['boots', 'footwear', 'foot protection', 'steel-toed'],
-    description: 'Puncture-proof sole and certified steel toe cap. Waterproof and slip-resistant.',
-    image: 'https://images.unsplash.com/photo-1628813635741-f358e6503c5d?q=80&w=800&auto=format&fit=crop',
-  },
-];
+interface MultiSelectDropdownProps {
+  options: EquipmentCategory[];
+  selectedItems: string[];
+  onChange: (selected: string[]) => void;
+  placeholder?: string;
+}
 
-export const INDUSTRIES = [
-  'Construction',
-  'Manufacturing & Industrial',
-  'Warehouse & Logistics',
-  'Healthcare & Medical',
-  'Energy, Oil & Gas',
-  'Food Service & Hospitality',
-  'General Office',
-];
+const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
+  options,
+  selectedItems,
+  onChange,
+  placeholder = 'Select equipment...',
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const wrapperRef = useRef<HTMLDivElement>(null);
 
-export const TASKS_BY_INDUSTRY: Record<string, string[]> = {
-  'Construction': [
-    'Welding steel beams',
-    'Operating heavy machinery (e.g., excavator)',
-    'Working at height on scaffolding',
-    'Concrete pouring and finishing',
-    'Electrical wiring and installation',
-    'Demolition work',
-  ],
-  'Manufacturing & Industrial': [
-    'Operating CNC machinery',
-    'Assembling electronic components',
-    'Handling chemical substances',
-    'Quality control inspection on a production line',
-    'Machine maintenance and repair',
-  ],
-  'Warehouse & Logistics': [
-    'Operating a forklift',
-    'Loading and unloading trucks',
-    'Picking and packing orders',
-    'Inventory management with pallet jacks',
-  ],
-  'Healthcare & Medical': [
-    'Patient handling and transport',
-    'Administering medication',
-    'Handling biohazardous waste',
-    'Performing laboratory tests',
-  ],
-  'Energy, Oil & Gas': [
-    'Drilling operations',
-    'Pipeline inspection and maintenance',
-    'Working in confined spaces (e.g., tanks)',
-    'Handling flammable materials',
-  ],
-  'Food Service & Hospitality': [
-    'Operating deep fryers and grills',
-    'Using commercial slicing equipment',
-    'Handling cleaning chemicals',
-    'Working in a walk-in freezer',
-  ],
-  'General Office': [
-    'Ergonomic workstation setup',
-    'Emergency evacuation procedures',
-    'Using standard office equipment',
-  ]
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [wrapperRef]);
+
+  const handleToggle = (item: string) => {
+    const newSelection = selectedItems.includes(item)
+      ? selectedItems.filter(i => i !== item)
+      : [...selectedItems, item];
+    onChange(newSelection);
+  };
+  
+  const filteredOptions = options.map(group => ({
+      ...group,
+      items: group.items.filter(item => item.toLowerCase().includes(searchTerm.toLowerCase()))
+  })).filter(group => group.items.length > 0);
+
+  return (
+    <div className="relative" ref={wrapperRef}>
+      <div className="w-full">
+        <label htmlFor="equipment-multiselect-button" className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+          Tools / Equipment <span className="text-slate-400 font-normal">(Optional)</span>
+        </label>
+        <button
+          id="equipment-multiselect-button"
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className="mt-1 flex items-center justify-between w-full min-h-[42px] px-4 py-2 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-lg text-left"
+          aria-haspopup="listbox"
+          aria-expanded={isOpen}
+        >
+          <div className="flex flex-wrap gap-1">
+            {selectedItems.length > 0 ? (
+              selectedItems.map(item => (
+                <span key={item} className="flex items-center gap-1 bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-200 text-xs font-medium px-2 py-0.5 rounded-full">
+                  {item}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleToggle(item);
+                    }}
+                    className="text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-200"
+                    aria-label={`Remove ${item}`}
+                  >
+                    <X size={12} />
+                  </button>
+                </span>
+              ))
+            ) : (
+              <span className="text-slate-400">{placeholder}</span>
+            )}
+          </div>
+          <ChevronDown size={16} className={`text-slate-400 transition-transform flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`} />
+        </button>
+      </div>
+
+      {isOpen && (
+        <div className="absolute z-10 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md shadow-lg max-h-60 flex flex-col">
+          <div className="p-2 sticky top-0 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+             <div className="relative">
+                <Search className="pointer-events-none absolute top-1/2 -translate-y-1/2 left-3 h-4 w-4 text-slate-400" />
+                <input
+                    type="text"
+                    placeholder="Search equipment..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-9 pr-3 py-1.5 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm focus:ring-amber-500 focus:border-amber-500 dark:bg-slate-700 dark:text-white sm:text-sm"
+                />
+             </div>
+          </div>
+          <div className="overflow-y-auto">
+            {filteredOptions.length > 0 ? (
+                filteredOptions.map(group => (
+                <div key={group.category}>
+                    <h3 className="px-3 py-2 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">{group.category}</h3>
+                    <ul>
+                    {group.items.map(item => (
+                        <li
+                        key={item}
+                        onClick={() => handleToggle(item)}
+                        className="px-3 py-2 cursor-pointer flex items-center hover:bg-slate-100 dark:hover:bg-slate-700"
+                        role="option"
+                        aria-selected={selectedItems.includes(item)}
+                        >
+                        <input
+                            type="checkbox"
+                            checked={selectedItems.includes(item)}
+                            readOnly
+                            className="w-4 h-4 text-amber-500 rounded border-slate-300 dark:border-slate-500 focus:ring-amber-500 cursor-pointer"
+                        />
+                        <span className="ml-3 text-sm text-slate-700 dark:text-slate-300">{item}</span>
+                        </li>
+                    ))}
+                    </ul>
+                </div>
+                ))
+            ) : (
+                <p className="text-center py-4 text-sm text-slate-500">No equipment found.</p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 };
 
-export const EQUIPMENT_CATEGORIES: EquipmentCategory[] = [
-  {
-    category: 'Heavy Machinery',
-    items: ['Forklift', 'Excavator', 'Crane', 'Bulldozer', 'Pallet Jack', 'Scissor Lift', 'Boom Lift'],
-  },
-  {
-    category: 'Power Tools',
-    items: ['Arc Welder', 'Drill', 'Grinder', 'Circular Saw', 'Nail Gun', 'Jackhammer', 'Chainsaw'],
-  },
-  {
-    category: 'Safety & Access',
-    items: ['Scaffolding', 'Ladder', 'Harness', 'Winch', 'Ventilation Fan', 'Gas Detector'],
-  },
-  {
-    category: 'General Tools',
-    items: ['Fire Extinguisher', 'Hand Trolley', 'Cutting Tools', 'Pressure Washer'],
-  }
-];
-
-
-export const exampleScenarios = [
-  {
-    icon: React.createElement(Building, { className: "w-8 h-8 text-amber-500 flex-shrink-0" }),
-    title: 'Construction Welding',
-    industry: 'Construction',
-    task: 'Welding steel support beams on the 3rd floor',
-    equipment: ['Arc Welder', 'Scaffolding', 'Fire Extinguisher', 'Grinder'],
-    details: 'Working on an open-air platform at a height of 30 meters. Mildly windy conditions.',
-  },
-  {
-    icon: React.createElement(Factory, { className: "w-8 h-8 text-amber-500 flex-shrink-0" }),
-    title: 'Warehouse Forklift',
-    industry: 'Warehouse & Logistics',
-    task: 'Operating a forklift to move pallets from receiving to storage racks',
-    equipment: ['Forklift', 'Pallet Jack'],
-    details: 'Narrow aisles with pedestrian traffic. Indoor, fluorescent lighting.',
-  },
-  {
-    icon: React.createElement(Wrench, { className: "w-8 h-8 text-amber-500 flex-shrink-0" }),
-    title: 'Confined Space Entry',
-    industry: 'Energy, Oil & Gas',
-    task: 'Entering a drainage tank for routine inspection and maintenance',
-    equipment: ['Gas Detector', 'Harness', 'Winch', 'Ventilation Fan'],
-    details: 'Space is 5 meters deep with a 60cm entry hatch. Potential for hazardous gases and low oxygen levels.',
-  }
-];
+export default MultiSelectDropdown;
