@@ -3,20 +3,20 @@ import { Loader2, Package, Save, AlertTriangle, ShieldCheck, Printer, FileDown, 
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
-import Navbar from './components/Navbar.tsx';
-import Footer from './components/Footer.tsx';
-import MarkdownRenderer from './components/MarkdownRenderer.tsx';
-import QuoteModal from './components/QuoteModal.tsx';
-import SavedChecklistsModal from './components/SavedChecklistsModal.tsx';
-import ProductCard from './components/ProductCard.tsx';
-import Toast from './components/Toast.tsx';
-import AiChatBot from './components/AiChatBot.tsx';
-import QrCodeModal from './components/QrCodeModal.tsx';
-import MultiSelectDropdown from './components/MultiSelectDropdown.tsx';
-import { PPE_PRODUCTS, exampleScenarios, INDUSTRIES, TASKS_BY_INDUSTRY, EQUIPMENT_CATEGORIES } from './constants.ts';
-import { PpeProduct, SavedChecklist, ErrorState, ValidationErrors } from './types.ts';
-import { getApiErrorState } from './services/errorHandler.ts';
-import { generateChecklistFromApi } from './services/geminiService.ts';
+import Navbar from './components/Navbar';
+import Footer from './components/Footer';
+import MarkdownRenderer from './components/MarkdownRenderer';
+import QuoteModal from './components/QuoteModal';
+import SavedChecklistsModal from './components/SavedChecklistsModal';
+import ProductCard from './components/ProductCard';
+import Toast from './components/Toast';
+import AiChatBot from './components/AiChatBot';
+import QrCodeModal from './components/QrCodeModal';
+import MultiSelectDropdown from './components/MultiSelectDropdown';
+import { PPE_PRODUCTS, exampleScenarios, INDUSTRIES, TASKS_BY_INDUSTRY, EQUIPMENT_CATEGORIES } from './constants';
+import { PpeProduct, SavedChecklist, ErrorState, ValidationErrors } from './types';
+import { getApiErrorState } from './services/errorHandler';
+import { generateChecklistFromApi } from './services/geminiService';
 
 
 const LOADING_MESSAGES = [
@@ -293,112 +293,114 @@ const App: React.FC = () => {
               <label htmlFor="details" className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
                 Other Specific Details <span className="text-slate-400 font-normal">(Optional)</span>
               </label>
-              <input type="text" id="details" value={specificDetails} onChange={e => setSpecificDetails(e.target.value)} placeholder="e.g., Working at height, windy conditions" className="mt-1 block w-full px-4 py-2 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-lg focus:ring-amber-500 focus:border-amber-500" />
+              <input type="text" id="details" value={specificDetails} onChange={e => setSpecificDetails(e.target.value)} placeholder="e.g., Working at height, windy..." className="mt-1 block w-full px-4 py-2 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-lg focus:ring-amber-500 focus:border-amber-500" />
             </div>
           </div>
-          
-          <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-700">
-            <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-3">Or, try an example:</p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {exampleScenarios.map((scenario, index) => (
-                <button key={index} onClick={() => handleExampleClick(scenario)} className="flex items-center text-left p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors duration-200">
-                  {scenario.icon}
-                  <span className="ml-3 font-semibold text-slate-700 dark:text-slate-300 text-sm">{scenario.title}</span>
+
+          <div className="mt-6 text-center">
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Or try one of our examples:</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {exampleScenarios.map(scenario => (
+                <button key={scenario.title} onClick={() => handleExampleClick(scenario)} className="group text-left p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20 border-2 border-slate-200 dark:border-slate-800 hover:border-amber-200 dark:hover:border-amber-800 transition-all">
+                  <div className="flex items-start gap-4">
+                    {scenario.icon}
+                    <div>
+                      <h3 className="font-semibold text-slate-800 dark:text-slate-200 group-hover:text-amber-700 dark:group-hover:text-amber-300">{scenario.title}</h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">{scenario.task}</p>
+                    </div>
+                  </div>
                 </button>
               ))}
             </div>
           </div>
           
-          <div className="mt-6 text-center">
-            <button onClick={generateChecklist} disabled={isLoading} className="inline-flex items-center justify-center bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold py-3 px-8 rounded-xl transition-all transform hover:scale-105 active:scale-95 shadow-lg disabled:opacity-70 disabled:cursor-not-allowed">
-              {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <ShieldCheck className="mr-2 h-5 w-5" />}
-              {isLoading ? 'Generating...' : 'Generate Safety Checklist'}
+          <div className="mt-8 border-t border-slate-200 dark:border-slate-700 pt-6 flex justify-center">
+            <button
+              onClick={generateChecklist}
+              disabled={isLoading}
+              className="inline-flex items-center justify-center px-8 py-3 text-base font-semibold text-slate-900 bg-amber-500 border border-transparent rounded-lg shadow-sm hover:bg-amber-600 disabled:opacity-70 disabled:cursor-not-allowed transform hover:scale-105 transition-transform"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  <span>{loadingMessage}</span>
+                </>
+              ) : (
+                'Generate Checklist'
+              )}
             </button>
           </div>
         </section>
-        
-        <div className="mt-12">
-          {isLoading && (
-            <div role="status" className="text-center p-8 bg-white dark:bg-slate-900/50 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-800">
-              <Loader2 className="mx-auto h-12 w-12 text-amber-500 animate-spin" />
-              <p className="mt-4 text-lg font-semibold text-slate-800 dark:text-slate-200">Generating Your Checklist</p>
-              <p className="mt-2 text-slate-500 dark:text-slate-400">{loadingMessage}</p>
-            </div>
-          )}
-          
-          {error && (
-            <div role="alert" className="p-6 rounded-2xl bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-900/50">
-              <div className="flex items-start">
-                <AlertTriangle className="h-6 w-6 text-red-500 dark:text-red-400 flex-shrink-0 mr-3 mt-1" />
-                <div>
-                  <h3 className="text-lg font-bold text-red-800 dark:text-red-200">{error.title}</h3>
-                  <div className="text-red-700 dark:text-red-300 mt-2">{error.message}</div>
-                </div>
+
+        {error && (
+          <div role="alert" className="mt-8 p-4 rounded-lg bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 animate-slide-in">
+            <div className="flex items-start">
+              <AlertTriangle className="h-6 w-6 text-red-500 dark:text-red-400 flex-shrink-0 mr-3" />
+              <div>
+                <h3 className="text-lg font-semibold text-red-800 dark:text-red-200">{error.title}</h3>
+                <div className="text-sm text-red-700 dark:text-red-300 mt-1">{error.message}</div>
               </div>
             </div>
-          )}
-          
-          {checklist && (
-            <section aria-labelledby="generated-checklist-heading" className="animate-slide-in" style={{ animationDelay: '0.1s' }}>
-              <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <h2 id="generated-checklist-heading" className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">Your Generated Checklist</h2>
-                   <div className="mt-2 flex items-center text-sm font-medium text-slate-500 dark:text-slate-400">
-                    <span className={`px-2 py-1 rounded-full text-xs mr-2 ${completionPercentage === 100 ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300' : 'bg-slate-100 dark:bg-slate-800'}`}>
-                      {checkedItems.size} / {totalChecklistItems} Checked
-                    </span>
-                    <div className="w-24 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden" role="progressbar" aria-valuenow={completionPercentage} aria-valuemin={0} aria-valuemax={100}>
-                      <div className="h-full bg-amber-500" style={{ width: `${completionPercentage}%`, transition: 'width 0.3s ease' }} />
+          </div>
+        )}
+
+        {checklist && !isLoading && (
+          <section id="checklist-results" aria-live="polite" className="mt-12 animate-slide-in" style={{ animationDelay: '0.1s' }}>
+            <div className="bg-white dark:bg-slate-900/50 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-800 overflow-hidden">
+                <div className="p-4 sm:p-6 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex flex-wrap gap-4 items-center justify-between">
+                    <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white flex items-center">
+                        <ShieldCheck className="w-7 h-7 mr-3 text-green-500" />
+                        Your Safety Checklist
+                    </h2>
+                    <div className="flex items-center space-x-2">
+                        <button onClick={saveChecklist} className="no-print p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700" aria-label="Save checklist">
+                            <Save size={18} />
+                        </button>
+                        <button onClick={copyToClipboard} className="no-print p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700" aria-label="Copy checklist text">
+                            <Copy size={18} />
+                        </button>
+                        <button onClick={downloadPdf} className="no-print p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700" aria-label="Download as PDF">
+                            <FileDown size={18} />
+                        </button>
+                        <button onClick={() => window.print()} className="no-print p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700" aria-label="Print checklist">
+                            <Printer size={18} />
+                        </button>
                     </div>
-                  </div>
                 </div>
-                <div className="no-print flex items-center flex-wrap gap-2">
-                  <button onClick={saveChecklist} className="action-button">
-                    <Save size={16} className="mr-2" /> Save
-                  </button>
-                  <button onClick={() => window.print()} className="action-button">
-                    <Printer size={16} className="mr-2" /> Print
-                  </button>
-                  <button onClick={downloadPdf} className="action-button">
-                    <FileDown size={16} className="mr-2" /> PDF
-                  </button>
-                  <button onClick={copyToClipboard} className="action-button">
-                    <Copy size={16} className="mr-2" /> Copy
-                  </button>
+
+                <div className="p-2 sm:p-4 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+                    <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2.5">
+                        <div className="bg-green-500 h-2.5 rounded-full" style={{ width: `${completionPercentage}%`, transition: 'width 0.5s ease-in-out' }}></div>
+                    </div>
+                    <p className="text-xs text-right mt-1 text-slate-500 dark:text-slate-400">{Math.round(completionPercentage)}% Complete ({checkedItems.size}/{totalChecklistItems})</p>
                 </div>
-              </div>
-              <div ref={checklistRef} className="print-area bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-800">
-                <MarkdownRenderer text={checklist} checkedItems={checkedItems} onToggleItem={handleToggleChecklistItem} />
-              </div>
-            </section>
-          )}
-          
-          {recommendedPpe.length > 0 && (
-            <section aria-labelledby="recommended-ppe-heading" className="mt-16 animate-slide-in" style={{ animationDelay: '0.2s' }}>
-              <div className="flex items-center gap-3 mb-6">
-                 <Package size={28} className="text-amber-500" />
-                 <h2 id="recommended-ppe-heading" className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">Recommended PPE</h2>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                {recommendedPpe.map(ppeId => {
-                  const product = PPE_PRODUCTS.find(p => p.id === ppeId);
-                  return product ? <ProductCard key={product.id} product={product} onGetQuote={handleGetQuote} /> : null;
-                })}
-              </div>
-            </section>
-          )}
-        </div>
+
+                <div ref={checklistRef} className="print-area p-4 sm:p-6 bg-white dark:bg-slate-900">
+                    <MarkdownRenderer text={checklist} checkedItems={checkedItems} onToggleItem={handleToggleChecklistItem} />
+                </div>
+            </div>
+          </section>
+        )}
+
+        {recommendedPpe.length > 0 && !isLoading && (
+          <section className="mt-12 animate-slide-in" style={{ animationDelay: '0.2s' }}>
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white flex items-center mb-6">
+              <Package className="w-7 h-7 mr-3 text-amber-500" />
+              Recommended PPE
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+              {PPE_PRODUCTS.filter(p => recommendedPpe.includes(p.id)).map(product => (
+                <ProductCard key={product.id} product={product} onGetQuote={handleGetQuote} />
+              ))}
+            </div>
+          </section>
+        )}
       </main>
-      
+
       <Footer />
 
       <QuoteModal isOpen={isQuoteModalOpen} onClose={() => setIsQuoteModalOpen(false)} product={selectedProduct} />
-      <SavedChecklistsModal 
-        isOpen={isSavedModalOpen} 
-        onClose={() => setIsSavedModalOpen(false)} 
-        savedChecklists={savedChecklists}
-        onDelete={deleteChecklist}
-      />
+      <SavedChecklistsModal isOpen={isSavedModalOpen} onClose={() => setIsSavedModalOpen(false)} savedChecklists={savedChecklists} onDelete={deleteChecklist} />
       <QrCodeModal isOpen={isQrModalOpen} onClose={() => setIsQrModalOpen(false)} />
       <Toast message={toastMessage} onDismiss={() => setToastMessage('')} />
       <AiChatBot />
@@ -406,4 +408,5 @@ const App: React.FC = () => {
   );
 };
 
+// FIX: Add default export for the App component.
 export default App;
