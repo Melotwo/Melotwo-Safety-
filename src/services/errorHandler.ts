@@ -1,5 +1,5 @@
 import React from 'react';
-import { ErrorState } from '../types.ts';
+import { ErrorState } from '../types';
 
 /**
  * Processes an unknown error from an API call and returns a structured ErrorState object
@@ -36,48 +36,25 @@ export const getApiErrorState = (err: unknown): ErrorState => {
                     ),
                     React.createElement("li", null,
                       React.createElement("strong", null, "Enable API:"),
-                      " Make sure the Generative Language API is enabled for your Google Cloud project."
+                      " Make sure the Generative Language API is enabled for your project."
                     )
                   )
                 )
               ),
           };
-      } else if (lowerCaseMessage.includes('quota')) {
+      } else if (lowerCaseMessage.includes('model not found')) {
           errorState = {
-              title: 'API Quota Exceeded',
-              message: 'You have exceeded your request limit for the AI service. Please check your usage and billing details in your Google Cloud dashboard or wait before trying again.',
+              title: 'Model Not Found',
+              message: "The specified AI model could not be found. This might be a temporary issue or a configuration error. Please try again shortly.",
           };
-      } else if (lowerCaseMessage.includes('blocked')) {
+      } else if (lowerCaseMessage.includes('billing') || lowerCaseMessage.includes('quota')) {
           errorState = {
-              title: 'Content Moderation Error',
-              message: 'The request was blocked by the AI\'s safety filters. This can happen if the prompt is flagged as potentially harmful. Please try rephrasing your request.',
-          };
-      } else if (lowerCaseMessage.includes('fetch') || lowerCaseMessage.includes('network')) {
-          errorState = {
-              title: 'Network Connection Error',
-              message: 'Failed to connect to the AI service. Please check your internet connection and any firewall settings, then try again.',
-          };
-      } else if (lowerCaseMessage.includes('malformed') || lowerCaseMessage.includes('400') || lowerCaseMessage.includes('bad request')) {
-          errorState = {
-              title: 'Invalid Request',
-              message: 'The data sent to the AI service was invalid. This could be due to a temporary issue or incorrect input format. Please check your inputs or try again later.',
-          };
-      } else if (lowerCaseMessage.includes('500') || lowerCaseMessage.includes('server error') || lowerCaseMessage.includes('internal error')) {
-           errorState = {
-              title: 'AI Service Error',
-              message: 'The AI service encountered an internal error and could not complete your request. This is a likely a temporary issue. Please try again in a few moments.',
-          };
-      } else if (lowerCaseMessage.includes('resource has been exhausted')) {
-          errorState = {
-              title: 'Resource Limit Reached',
-              message: 'The model has reached its resource limit for this request. Please try again with a shorter or less complex prompt.',
+              title: 'Billing or Quota Issue',
+              message: "Your request could not be completed due to a billing or quota limit. Please check your project's billing status and API usage quotas in your Google Cloud dashboard.",
           };
       } else {
-        // Fallback for other specific errors
-        errorState = {
-            title: 'An Unexpected Error Occurred',
-            message: `Details: "${err.message}". Please try again.`,
-        };
+        // For other generic errors, use the error message directly if it's informative
+        errorState.message = err.message;
       }
     }
     
