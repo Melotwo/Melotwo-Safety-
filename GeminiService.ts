@@ -1,88 +1,103 @@
+import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
+import { SafetyInspectionResult } from '../types';
 
-import { GoogleGenAI, Type } from "@google/genai";
-import { PPE_PRODUCTS } from '../constants';
+const PROBABILITY_MAP: Record<string, { score: number; label: string; color: string }> = {
+  NEGLIGIBLE: { score: 1.2, label: 'Negligible', color: 'text-green-500 bg-green-100 border-green-500' },
+  LOW: { score: 3.5, label: 'Low Risk', color: 'text-yellow-500 bg-yellow-100 border-yellow-500' },
+  MEDIUM: { score: 6.5, label: 'Medium Risk', color: 'text-orange-500 bg-orange-100 border-orange-500' },
+  HIGH: { score: 9.5, label: 'High Risk', color: 'text-red-500 bg-red-100 border-red-500' },
+  UNKNOWN: { score: 0.0, label: 'Unknown', color: 'text-gray-500 bg-gray-100 border-gray-500' },
+};
 
-export interface ChecklistGenerationParams {
-  industry: string;
-  task: string;
-  equipment: string[];
-  specificDetails: string;
-}
+const PROBABILITY_ORDER = ['UNKNOWN', 'NEGLIGIBLE', 'LOW', 'MEDIUM', 'HIGH'];
 
-export interface ChecklistGenerationResult {
-  checklist: string;
-  recommendedPpe: string[];
-  totalChecklistItems: number;
-}
-
-export const generateChecklistFromApi = async ({
-  industry,
-  task,
-  equipment,
-  specificDetails,
-}: ChecklistGenerationParams): Promise<ChecklistGenerationResult> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
-  const responseSchema = {
-    type: Type.OBJECT,
-    properties: {
-      recommendedPpe: {
-        type: Type.ARRAY,
-        description: 'A list of generic PPE items required for the task, e.g., "hard hat", "safety glasses".',
-        items: { type: Type.STRING },
-      },
-      checklistMarkdown: {
-        type: Type.STRING,
-        description: "The full safety checklist formatted in Markdown. It must include logical sections using '## ' for headings and bullet points using '* ' for items. It must also include the mandatory disclaimer at the end.",
-      },
-    },
-    required: ['recommendedPpe', 'checklistMarkdown'],
-  };
-
-  const systemInstruction = `You are a certified safety inspector. Your tone is formal, professional, and authoritative. Your entire response must conform to the provided JSON schema. The 'checklistMarkdown' field must contain a comprehensive safety checklist. At the end of the markdown content, you MUST include the following disclaimer, formatted exactly as shown:
-
----
-***Disclaimer:** This checklist is AI-generated and for informational purposes only. It is not a substitute for professional safety advice. Always consult with a qualified safety professional to ensure compliance with local regulations and site-specific conditions.*`;
-
-  const prompt = `
-    Generate a safety checklist and a list of recommended Personal Protective Equipment (PPE) for the following scenario:
-
-    - **Industry/Environment:** ${industry}
-    - **Specific Task:** ${task}
-    - **Tools/Equipment Used:** ${equipment.length > 0 ? equipment.join(', ') : 'Not specified'}
-    - **Other Specific Details:** ${specificDetails || 'None'}
-  `;
-
-  const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash',
-    contents: prompt,
-    config: {
-        systemInstruction: systemInstruction,
-        responseMimeType: "application/json",
-        responseSchema: responseSchema,
-    },
-  });
-  
-  const responseObject = JSON.parse(response.text);
-  const checklistText: string = responseObject.checklistMarkdown || '';
-  const ppeNames: string[] = responseObject.recommendedPpe || [];
-
-  const recommendedPpeIds: string[] = [];
-  ppeNames.forEach(ppeName => {
-    const lowerPpeName = ppeName.toLowerCase();
-    const matchingProduct = PPE_PRODUCTS.find(p => 
-      p.keywords.some(k => lowerPpeName.includes(k))
-    );
-    if (matchingProduct && !recommendedPpeIds.includes(matchingProduct.id)) {
-      recommendedPpeIds.push(matchingProduct.id);
+export const runSafetyInspector = async (scenario: string, systemInstruction: string): Promise<SafetyInspectionResult> => {
+    if (!process.env.API_KEY) {
+        throw new Error("API_KEY environment variable not set. Please ensure it is configured in your environment.");
     }
-  });
-  
-  const totalChecklistItems = (checklistText.match(/\* /g) || []).length;
 
-  return {
-    checklist: checklistText,
-    recommendedPpe: recommendedPpeIds,
-    totalChecklistItems,
-  };
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+    try {
+        const response: GenerateContentResponse = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: [{ parts: [{ text: scenario }] }],
+            config: {
+                systemInstruction: systemInstruction,
+            },
+        });
+        
+        const feedback = response.promptFeedback;
+
+        if (feedback?.blockReason) {
+            return {
+                text: `[**Safety Inspector Blocked**] Policy violation detected. Reason: ${feedback.blockReason}. The LLM output has been suppressed.`,
+                score: '9.9',
+                label: 'Blocked',
+                color: 'text-red-600 bg-red-100 border-red-600',
+            };
+        }
+
+        const safetyRatings = feedback?.safetyRatings || [];
+        let highestRisk = PROBABILITY_MAP.NEGLIGIBLE;
+        let highestRiskLevel = PROBABILITY_ORDER.indexOf('NEGLIGIBLE');
+
+        safetyRatings.forEach(rating => {
+            const currentLevel = PROBABILITY_ORDER.indexOf(rating.probability);
+            if (currentLevel > highestRiskLevel) {
+                highestRiskLevel = currentLevel;
+                highestRisk = PROBABILITY_MAP[rating.probability] || PROBABILITY_MAP.UNKNOWN;
+            }
+        });
+        
+        // Ensure there is content before accessing text
+        if (!response.candidates || response.candidates.length === 0) {
+            // If text is present directly on response (fallback), use it, otherwise error
+            if (response.text) {
+                 return {
+                    text: response.text,
+                    score: highestRisk.score.toFixed(1),
+                    label: highestRisk.label,
+                    color: highestRisk.color,
+                };
+            }
+            throw new Error("The model returned no content. It may have been filtered completely.");
+        }
+
+        return {
+            text: response.text || "No text output generated.",
+            score: highestRisk.score.toFixed(1),
+            label: highestRisk.label,
+            color: highestRisk.color,
+        };
+
+    } catch (error: any) {
+        console.error("Error calling Gemini API:", error);
+        
+        let errorMessage = "An unexpected error occurred while communicating with the AI service.";
+
+        if (error instanceof Error) {
+             errorMessage = error.message;
+        } else if (typeof error === 'string') {
+             errorMessage = error;
+        }
+
+        const msgLower = errorMessage.toLowerCase();
+        
+        // Provide more helpful user-facing errors based on common failure modes
+        if (msgLower.includes('api key') || msgLower.includes('403')) {
+             throw new Error("Authentication Failed: Invalid API Key or access denied. Please check your configuration.");
+        }
+        if (msgLower.includes('429') || msgLower.includes('quota') || msgLower.includes('exhausted')) {
+             throw new Error("Usage Limit Exceeded: The API quota has been reached. Please try again later.");
+        }
+        if (msgLower.includes('503') || msgLower.includes('overloaded')) {
+             throw new Error("Service Unavailable: The AI model is currently overloaded. Please try again in a moment.");
+        }
+        if (msgLower.includes('fetch failed') || msgLower.includes('network') || msgLower.includes('failed to fetch')) {
+             throw new Error("Connection Error: Unable to reach Google AI servers. Please check your internet connection.");
+        }
+
+        throw new Error(errorMessage);
+    }
 };
