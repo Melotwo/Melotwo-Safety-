@@ -26,3 +26,11 @@ export interface InspectionHistoryItem {
   systemPrompt: string;
   result: SafetyInspectionResult;
 }
+
+export interface InspectorTemplate {
+  id: string;
+  name: string;
+  description: string;
+  scenario: string;
+  systemPrompt: string;
+}
