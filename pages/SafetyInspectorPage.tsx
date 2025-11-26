@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Loader2, Link, Clock, Trash2, ChevronRight } from '../components/icons';
+import { Search, Loader2, Link, Clock, Trash2, ChevronRight, AlertTriangle, FileText } from '../components/icons';
 import { runSafetyInspector } from '../services/geminiService';
 import { SafetyInspectionResult, InspectionHistoryItem } from '../types';
+import { INSPECTOR_TEMPLATES } from '../constants';
 
 export const SafetyInspectorPage: React.FC = () => {
     const [scenario, setScenario] = useState('');
@@ -53,6 +54,18 @@ export const SafetyInspectorPage: React.FC = () => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
+    const handleTemplateChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const selectedId = e.target.value;
+        const template = INSPECTOR_TEMPLATES.find(t => t.id === selectedId);
+        
+        if (template) {
+            setScenario(template.scenario);
+            setSystemPrompt(template.systemPrompt);
+            setError(null);
+            setResponse(null);
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (!scenario.trim()) {
@@ -71,7 +84,7 @@ export const SafetyInspectorPage: React.FC = () => {
         } catch (err) {
             console.error(err);
             const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred.';
-            setError(`An error occurred during safety inspection: ${errorMessage}`);
+            setError(errorMessage);
         } finally {
             setLoading(false);
         }
@@ -98,6 +111,25 @@ export const SafetyInspectorPage: React.FC = () => {
 
             <div className="bg-white p-8 shadow-2xl rounded-xl border border-gray-100">
                 <form onSubmit={handleSubmit} className="space-y-6">
+                    {/* Template Selector */}
+                    <div className="flex justify-end">
+                         <div className="relative inline-flex items-center">
+                            <FileText className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                            <select 
+                                onChange={handleTemplateChange}
+                                defaultValue=""
+                                className="pl-9 pr-4 py-2 bg-indigo-50 border border-indigo-200 text-indigo-700 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:w-64 cursor-pointer font-medium hover:bg-indigo-100 transition-colors"
+                            >
+                                <option value="" disabled>Load a test template...</option>
+                                {INSPECTOR_TEMPLATES.map(template => (
+                                    <option key={template.id} value={template.id}>
+                                        {template.name}
+                                    </option>
+                                ))}
+                            </select>
+                         </div>
+                    </div>
+
                     <div>
                         <label htmlFor="scenario" className="block text-sm font-medium text-gray-700 mb-1">
                             Scenario/User Prompt to Test
@@ -152,9 +184,18 @@ export const SafetyInspectorPage: React.FC = () => {
                             )}
                         </button>
                     </div>
-                    {error && <p className="mt-3 text-sm font-medium text-center text-red-600">{error}</p>}
                 </form>
             </div>
+
+            {error && (
+                <div className="mt-8 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start animate-fade-in-up">
+                    <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5 mr-3 flex-shrink-0" />
+                    <div>
+                        <h3 className="text-sm font-bold text-red-800">Inspection Failed</h3>
+                        <p className="text-sm text-red-700 mt-1">{error}</p>
+                    </div>
+                </div>
+            )}
 
             {response && (
                 <div className="mt-10 p-6 bg-gray-50 rounded-xl shadow-inner border border-gray-200 animate-fade-in-up">
