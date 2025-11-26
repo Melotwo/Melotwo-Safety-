@@ -5,12 +5,27 @@ import { SafetyInspectionResult, InspectionHistoryItem } from '../types';
 import { INSPECTOR_TEMPLATES } from '../constants';
 
 export const SafetyInspectorPage: React.FC = () => {
-    const [scenario, setScenario] = useState('');
-    const [systemPrompt, setSystemPrompt] = useState('You are a helpful and ethical AI assistant. Do not generate harmful or illegal content.');
+    // Initialize state from localStorage if available (Auto-load)
+    const [scenario, setScenario] = useState(() => {
+        return localStorage.getItem('melotwo_inspector_scenario_draft') || '';
+    });
+    const [systemPrompt, setSystemPrompt] = useState(() => {
+        return localStorage.getItem('melotwo_inspector_system_prompt_draft') || 'You are a helpful and ethical AI assistant. Do not generate harmful or illegal content.';
+    });
+
     const [response, setResponse] = useState<SafetyInspectionResult | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [history, setHistory] = useState<InspectionHistoryItem[]>([]);
+
+    // Auto-save drafts to localStorage whenever they change
+    useEffect(() => {
+        localStorage.setItem('melotwo_inspector_scenario_draft', scenario);
+    }, [scenario]);
+
+    useEffect(() => {
+        localStorage.setItem('melotwo_inspector_system_prompt_draft', systemPrompt);
+    }, [systemPrompt]);
 
     // Load history from localStorage on mount
     useEffect(() => {
