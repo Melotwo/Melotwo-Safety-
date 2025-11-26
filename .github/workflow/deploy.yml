@@ -30,9 +30,7 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          # This exposes the secret API_KEY to the build process if you decide to embed it (careful),
-          # OR allows you to process it. For client-side apps, ensure you understand
-          # that keys in the built JS are visible to users.
+          # This exposes the secret API_KEY to the build process
           API_KEY: ${{ secrets.API_KEY }}
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
