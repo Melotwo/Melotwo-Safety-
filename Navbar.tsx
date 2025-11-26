@@ -1,40 +1,84 @@
 import React from 'react';
-import { ShieldCheck, Sun, Moon, Bookmark, Share2 } from 'lucide-react';
+import { Shield, User } from './icons';
+import { Page } from '../types';
 
-const Navbar: React.FC<{
-  onThemeToggle: () => void;
-  isDarkMode: boolean;
-  onOpenSaved: () => void;
-  savedCount: number;
-  onOpenQrCode: () => void;
-}> = ({ onThemeToggle, isDarkMode, onOpenSaved, savedCount, onOpenQrCode }) => (
-  <nav role="navigation" aria-label="Main navigation" className="no-print bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-40 border-b border-slate-200 dark:border-slate-800">
-    <div className="max-w-4xl mx-auto px-4">
-      <div className="flex justify-between items-center h-16">
-        <div className="flex items-center space-x-4">
-          <ShieldCheck className="w-8 h-8 text-amber-500" />
-          <div>
-            <span className="hidden sm:inline text-xl font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap">AI Safety Checklist Generator</span>
-            <span className="inline sm:hidden text-lg font-bold text-slate-800 dark:text-slate-200">AI Safety Gen</span>
-          </div>
-        </div>
-        <div className="flex items-center space-x-2 sm:space-x-4">
-          <button onClick={onOpenSaved} className="relative p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-amber-500 dark:focus-visible:ring-offset-slate-900" aria-label={`View saved checklists (${savedCount} saved)`}>
-            <Bookmark size={20} />
-            {savedCount > 0 && (
-              <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-xs font-medium text-white" aria-hidden="true">{savedCount}</span>
-            )}
-          </button>
-          <button onClick={onOpenQrCode} className="p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-amber-500 dark:focus-visible:ring-offset-slate-900" aria-label="Share application">
-            <Share2 size={20} />
-          </button>
-          <button onClick={onThemeToggle} className="p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-amber-500 dark:focus-visible:ring-offset-slate-900" aria-label={isDarkMode ? 'Activate light mode' : 'Activate dark mode'}>
-            {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
-          </button>
-        </div>
-      </div>
-    </div>
-  </nav>
-);
+interface NavbarProps {
+    currentPage: Page;
+    setPage: (page: Page) => void;
+    userId: string | null;
+    isAuthReady: boolean;
+}
 
-export default Navbar;
+export const Navbar: React.FC<NavbarProps> = ({ currentPage, setPage, userId, isAuthReady }) => {
+    const navItems: { name: string; page: Page }[] = [
+        { name: 'Home', page: 'home' },
+        { name: 'Solutions', page: 'solutions' },
+        { name: 'AI Safety Inspector', page: 'inspector' },
+    ];
+
+    return (
+        <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-100 shadow-sm">
+            <div className="flex items-center justify-between max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                <button onClick={() => setPage('home')} className="flex items-center space-x-2 shrink-0" aria-label="Go to homepage">
+                    <Shield className="w-7 h-7 text-indigo-600" />
+                    <span className="text-2xl font-extrabold text-gray-900 tracking-tight">Melotwo</span>
+                </button>
+                
+                {/* Changed breakpoint from md to lg for main nav to handle tablet width better */}
+                <nav className="hidden lg:flex space-x-8">
+                    {navItems.map(item => (
+                        <button
+                            key={item.page}
+                            onClick={() => setPage(item.page)}
+                            className={`px-3 py-2 text-sm font-medium transition duration-150 ease-in-out rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
+                                currentPage === item.page
+                                    ? 'text-indigo-600 border-b-2 border-indigo-600 font-semibold'
+                                    : 'text-gray-500 hover:text-gray-900'
+                            }`}
+                        >
+                            {item.name}
+                        </button>
+                    ))}
+                </nav>
+
+                <div className="flex items-center space-x-3 md:space-x-4">
+                    {/* Auth Status Indicator */}
+                    {isAuthReady && userId ? (
+                        <div className="flex items-center space-x-2 text-sm text-gray-600 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-200">
+                            <User className="w-4 h-4 text-indigo-500" />
+                            {/* Hide ID on very small screens */}
+                            <span className="hidden sm:inline font-mono text-xs" title={userId}>
+                                {userId.slice(0, 6)}...
+                            </span>
+                        </div>
+                    ) : (
+                         <div className="h-8 w-24 bg-gray-100 animate-pulse rounded-lg"></div>
+                    )}
+                    
+                    <button className="hidden sm:inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-lg shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Get Started
+                    </button>
+                </div>
+            </div>
+            
+            {/* Mobile/Tablet Sub-nav for smaller screens where main nav is hidden */}
+            <div className="lg:hidden border-t border-gray-100 py-2 overflow-x-auto">
+                 <div className="flex justify-around px-4 min-w-max">
+                    {navItems.map(item => (
+                        <button
+                            key={item.page}
+                            onClick={() => setPage(item.page)}
+                            className={`px-3 py-2 text-sm font-medium whitespace-nowrap ${
+                                currentPage === item.page
+                                    ? 'text-indigo-600'
+                                    : 'text-gray-500'
+                            }`}
+                        >
+                            {item.name}
+                        </button>
+                    ))}
+                 </div>
+            </div>
+        </header>
+    );
+};
