@@ -1,60 +1,40 @@
-# AI Safety Checklist Generator
+# Melotwo AI Safety Inspector
 
-A React-based tool powered by Google Gemini to generate comprehensive safety checklists for various industries.
+Melotwo provides cutting-edge tools to analyze, test, and ensure Large Language Models (LLMs) operate within ethical and regulatory guardrails. This application features a **Safety Inspector** powered by Google Gemini to simulate adversarial prompts and edge-case scenarios.
 
-## 🚀 Firebase Deployment Setup
+## ✨ Features
 
-This project is configured for **Firebase Hosting** with automated deployments via **GitHub Actions**.
+*   **AI Safety Inspector**: Test specific scenarios and system prompts against an AI safety guardrail.
+*   **Risk Analysis**: Automatically scores potential output for safety risks (Negligible, Low, Medium, High).
+*   **Template Library**: Pre-loaded adversarial templates (Jailbreak, Phishing, Bias) for quick testing.
+*   **Inspection History**: Automatically saves your testing history locally.
+*   **Draft Auto-Save**: Never lose your work; inputs are saved as you type.
+
+## 🚀 Deployment to GitHub Pages
+
+This project is configured to deploy automatically to **GitHub Pages** using GitHub Actions.
 
 ### 1. Prerequisites
-- A [Firebase](https://console.firebase.google.com/) account.
-- A [GitHub](https://github.com/) repository.
-- A Google Gemini API Key.
 
-### 2. Configure Firebase
+*   A GitHub repository.
+*   A Google Gemini API Key.
 
-1.  **Create a Project**: Go to the Firebase Console and create a new project.
-2.  **Install Firebase Tools** (if not already installed):
-    ```bash
-    npm install -g firebase-tools
-    ```
-3.  **Login**:
-    ```bash
-    firebase login
-    ```
-4.  **Update Project ID**:
-    - Open the `.firebaserc` file in your code editor.
-    - Replace `"your-project-id"` with your actual Firebase Project ID (found in Project Settings).
-    - Open `.github/workflows/deploy.yml` and replace `projectId: your-project-id` with your actual ID.
+### 2. Configure GitHub Secrets
 
-### 3. Configure GitHub Secrets
+To enable the application to talk to Google Gemini, you must add your API Key to the repository secrets.
 
-To enable the automated workflow, you need to add secrets to your GitHub repository:
+1.  Go to your GitHub repository.
+2.  Navigate to **Settings** > **Secrets and variables** > **Actions**.
+3.  Click **New repository secret**.
+4.  **Name**: `API_KEY`
+5.  **Value**: Paste your actual Google Gemini API Key.
+6.  Click **Add secret**.
 
-1.  Go to your GitHub repository > **Settings** > **Secrets and variables** > **Actions**.
-2.  **Add `API_KEY`**:
-    - Name: `API_KEY`
-    - Value: Your Google Gemini API Key.
-3.  **Add `FIREBASE_SERVICE_ACCOUNT`**:
-    - In the Firebase Console, go to **Project Settings** > **Service accounts**.
-    - Click **Generate new private key**. This downloads a JSON file.
-    - Open the JSON file, copy the *entire* content.
-    - Back in GitHub Secrets, create a new secret named `FIREBASE_SERVICE_ACCOUNT`.
-    - Paste the JSON content as the value.
+### 3. Enable GitHub Pages
 
-### 4. Deployment
-
-**Automatic Deployment**:
-- Any push to the `main` branch will trigger the GitHub Action defined in `.github/workflows/deploy.yml`.
-- It will build the application (injecting the API Key) and deploy it to Firebase Hosting.
-
-**Manual Deployment (Optional)**:
-If you want to deploy from your local machine:
-```bash
-# Create a .env file with API_KEY=your_key
-npm run build
-firebase deploy
-```
+1.  Go to **Settings** > **Pages**.
+2.  Under **Build and deployment** > **Source**, select **GitHub Actions**.
+3.  The deployment workflow will run automatically on the next push to `main`, or you can manually trigger it from the **Actions** tab.
 
 ## 🛠️ Local Development
 
@@ -63,7 +43,7 @@ firebase deploy
     npm install
     ```
 2.  **Environment Variables**:
-    Create a `.env` file in the root directory:
+    Create a `.env` file in the root directory for local testing:
     ```env
     API_KEY=your_actual_api_key_here
     ```
@@ -71,3 +51,10 @@ firebase deploy
     ```bash
     npm run dev
     ```
+
+## 🏗️ Tech Stack
+
+*   **Frontend**: React, TypeScript, Vite
+*   **Styling**: Tailwind CSS
+*   **AI Integration**: Google GenAI SDK (Gemini 2.5 Flash)
+*   **Hosting**: GitHub Pages
