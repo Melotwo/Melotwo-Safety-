@@ -92,16 +92,33 @@ export const SafetyInspectorPage: React.FC = () => {
 
         setLoading(true);
         setError(null);
-        setResponse(null);
+        
+        // Initialize with placeholder for streaming
+        setResponse({
+            text: '',
+            score: '...',
+            label: 'Analyzing...',
+            color: 'text-gray-500 bg-gray-100 border-gray-500'
+        });
 
         try {
-            const result = await runSafetyInspector(scenario, systemPrompt);
-            setResponse(result);
-            saveToHistory(result, scenario, systemPrompt);
+            const finalResult = await runSafetyInspector(scenario, systemPrompt, (streamedText) => {
+                setResponse(prev => {
+                    if (!prev) return null;
+                    return {
+                        ...prev,
+                        text: streamedText
+                    };
+                });
+            });
+            
+            setResponse(finalResult);
+            saveToHistory(finalResult, scenario, systemPrompt);
         } catch (err) {
             console.error(err);
             const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred.';
             setError(errorMessage);
+            setResponse(null);
         } finally {
             setLoading(false);
         }
@@ -228,17 +245,20 @@ export const SafetyInspectorPage: React.FC = () => {
                     <h2 className="text-2xl font-bold text-gray-900 mb-4 border-b pb-2">Inspection Results</h2>
                     <div className="p-4 rounded-lg border-2 mb-6 shadow-sm flex flex-col sm:flex-row items-center justify-between transition duration-300 transform hover:shadow-md gap-4">
                         <span className="text-lg font-semibold text-gray-700">Calculated Risk Score:</span>
-                        <span className={`text-2xl font-extrabold px-3 py-1 rounded-full border-2 ${response.color}`}>
-                            {response.score} ({response.label})
-                        </span>
+                        <div className={`flex items-center ${loading ? 'animate-pulse' : ''}`}>
+                            <span className={`text-2xl font-extrabold px-3 py-1 rounded-full border-2 ${response.color}`}>
+                                {response.score} ({response.label})
+                            </span>
+                        </div>
                     </div>
                     <div>
                         <h3 className="text-xl font-semibold text-gray-800 mb-3 flex items-center">
                             <Link className="w-5 h-5 mr-2 text-indigo-500" />
                             LLM Output
                         </h3>
-                        <pre className="whitespace-pre-wrap p-4 bg-white border border-gray-300 rounded-lg text-sm text-gray-700 overflow-x-auto font-mono">
+                        <pre className="whitespace-pre-wrap p-4 bg-white border border-gray-300 rounded-lg text-sm text-gray-700 overflow-x-auto font-mono min-h-[100px]">
                             {response.text}
+                            {loading && <span className="inline-block w-2 h-4 ml-1 bg-indigo-500 animate-pulse">|</span>}
                         </pre>
                     </div>
                 </div>
