@@ -17,6 +17,7 @@ export const SafetyInspectorPage: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [history, setHistory] = useState<InspectionHistoryItem[]>([]);
+    const [historySearchTerm, setHistorySearchTerm] = useState('');
 
     // Auto-save drafts to localStorage whenever they change
     useEffect(() => {
@@ -56,6 +57,7 @@ export const SafetyInspectorPage: React.FC = () => {
     const clearHistory = () => {
         if (window.confirm("Are you sure you want to clear your inspection history?")) {
             setHistory([]);
+            setHistorySearchTerm('');
             localStorage.removeItem('melotwo_inspector_history');
         }
     };
@@ -111,6 +113,15 @@ export const SafetyInspectorPage: React.FC = () => {
         setResponse(null);
         setError(null);
     };
+
+    // Filter history based on search term
+    const filteredHistory = history.filter(item => {
+        const term = historySearchTerm.toLowerCase();
+        return (
+            item.scenario.toLowerCase().includes(term) ||
+            item.result.label.toLowerCase().includes(term)
+        );
+    });
 
     return (
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-16">
@@ -235,7 +246,7 @@ export const SafetyInspectorPage: React.FC = () => {
 
             {/* History Section */}
             <div className="mt-16 border-t border-gray-200 pt-10">
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
                     <h2 className="text-2xl font-bold text-gray-900 flex items-center">
                         <Clock className="w-6 h-6 mr-2 text-gray-500" />
                         Recent Inspections
@@ -243,7 +254,7 @@ export const SafetyInspectorPage: React.FC = () => {
                     {history.length > 0 && (
                         <button 
                             onClick={clearHistory}
-                            className="text-sm text-red-600 hover:text-red-800 flex items-center hover:underline"
+                            className="text-sm text-red-600 hover:text-red-800 flex items-center hover:underline whitespace-nowrap"
                         >
                             <Trash2 className="w-4 h-4 mr-1" />
                             Clear History
@@ -251,13 +262,33 @@ export const SafetyInspectorPage: React.FC = () => {
                     )}
                 </div>
 
+                {/* Search Bar */}
+                {history.length > 0 && (
+                    <div className="mb-6 relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <Search className="h-5 w-5 text-gray-400" />
+                        </div>
+                        <input
+                            type="text"
+                            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition duration-150 ease-in-out"
+                            placeholder="Search history by scenario or risk level..."
+                            value={historySearchTerm}
+                            onChange={(e) => setHistorySearchTerm(e.target.value)}
+                        />
+                    </div>
+                )}
+
                 {history.length === 0 ? (
                     <div className="text-center py-10 bg-gray-50 rounded-xl border border-dashed border-gray-300">
                         <p className="text-gray-500">No inspection history yet. Run a test to save results here.</p>
                     </div>
+                ) : filteredHistory.length === 0 ? (
+                    <div className="text-center py-10 bg-gray-50 rounded-xl border border-dashed border-gray-300">
+                        <p className="text-gray-500">No matching results found.</p>
+                    </div>
                 ) : (
                     <div className="grid gap-4 md:grid-cols-2">
-                        {history.map((item) => (
+                        {filteredHistory.map((item) => (
                             <div 
                                 key={item.id} 
                                 onClick={() => loadHistoryItem(item)}
