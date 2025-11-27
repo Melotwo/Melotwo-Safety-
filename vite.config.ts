@@ -14,6 +14,9 @@ export default defineConfig(({ mode }) => {
       outDir: 'dist',
       assetsDir: 'assets',
     },
+    optimizeDeps: {
+      include: ['react', 'react-dom', 'react/jsx-runtime'],
+    },
     define: {
       // This is critical: We replace 'process.env.API_KEY' in your code
       // with the actual string value from the build environment.
