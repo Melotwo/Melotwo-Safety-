@@ -30,7 +30,7 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          # This exposes the secret API_KEY to the build process
+          # This injects the secret from GitHub Settings into the build process
           API_KEY: ${{ secrets.API_KEY }}
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
