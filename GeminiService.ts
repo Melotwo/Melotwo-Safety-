@@ -11,7 +11,11 @@ const PROBABILITY_MAP: Record<string, { score: number; label: string; color: str
 
 const PROBABILITY_ORDER = ['UNKNOWN', 'NEGLIGIBLE', 'LOW', 'MEDIUM', 'HIGH'];
 
-export const runSafetyInspector = async (scenario: string, systemInstruction: string): Promise<SafetyInspectionResult> => {
+export const runSafetyInspector = async (
+    scenario: string, 
+    systemInstruction: string,
+    onStreamUpdate?: (text: string) => void
+): Promise<SafetyInspectionResult> => {
     if (!process.env.API_KEY) {
         throw new Error("API_KEY environment variable not set. Please ensure it is configured in your environment.");
     }
@@ -19,7 +23,7 @@ export const runSafetyInspector = async (scenario: string, systemInstruction: st
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
     try {
-        const response: GenerateContentResponse = await ai.models.generateContent({
+        const streamResponse = await ai.models.generateContentStream({
             model: 'gemini-2.5-flash',
             contents: [{ parts: [{ text: scenario }] }],
             config: {
@@ -27,22 +31,43 @@ export const runSafetyInspector = async (scenario: string, systemInstruction: st
             },
         });
         
-        const feedback = response.promptFeedback;
+        let fullText = '';
+        let finalFeedback: any = null;
+        let finalCandidates: any[] = [];
 
-        if (feedback?.blockReason) {
+        for await (const chunk of streamResponse) {
+            const chunkText = chunk.text;
+            if (chunkText) {
+                fullText += chunkText;
+                if (onStreamUpdate) {
+                    onStreamUpdate(fullText);
+                }
+            }
+            if (chunk.promptFeedback) {
+                finalFeedback = chunk.promptFeedback;
+            }
+            if (chunk.candidates) {
+                finalCandidates = chunk.candidates;
+            }
+        }
+        
+        // Use feedback/candidates from the stream chunks or default if missing
+        const blockReason = finalFeedback?.blockReason;
+
+        if (blockReason) {
             return {
-                text: `[**Safety Inspector Blocked**] Policy violation detected. Reason: ${feedback.blockReason}. The LLM output has been suppressed.`,
+                text: `[**Safety Inspector Blocked**] Policy violation detected. Reason: ${blockReason}. The LLM output has been suppressed.`,
                 score: '9.9',
                 label: 'Blocked',
                 color: 'text-red-600 bg-red-100 border-red-600',
             };
         }
 
-        const safetyRatings = feedback?.safetyRatings || [];
+        const safetyRatings = finalFeedback?.safetyRatings || finalCandidates?.[0]?.safetyRatings || [];
         let highestRisk = PROBABILITY_MAP.NEGLIGIBLE;
         let highestRiskLevel = PROBABILITY_ORDER.indexOf('NEGLIGIBLE');
 
-        safetyRatings.forEach(rating => {
+        safetyRatings.forEach((rating: any) => {
             const currentLevel = PROBABILITY_ORDER.indexOf(rating.probability);
             if (currentLevel > highestRiskLevel) {
                 highestRiskLevel = currentLevel;
@@ -50,22 +75,12 @@ export const runSafetyInspector = async (scenario: string, systemInstruction: st
             }
         });
         
-        // Ensure there is content before accessing text
-        if (!response.candidates || response.candidates.length === 0) {
-            // If text is present directly on response (fallback), use it, otherwise error
-            if (response.text) {
-                 return {
-                    text: response.text,
-                    score: highestRisk.score.toFixed(1),
-                    label: highestRisk.label,
-                    color: highestRisk.color,
-                };
-            }
-            throw new Error("The model returned no content. It may have been filtered completely.");
+        if (!fullText && finalCandidates.length === 0) {
+             throw new Error("The model returned no content. It may have been filtered completely.");
         }
 
         return {
-            text: response.text || "No text output generated.",
+            text: fullText || "No text output generated.",
             score: highestRisk.score.toFixed(1),
             label: highestRisk.label,
             color: highestRisk.color,
@@ -84,7 +99,6 @@ export const runSafetyInspector = async (scenario: string, systemInstruction: st
 
         const msgLower = errorMessage.toLowerCase();
         
-        // Provide more helpful user-facing errors based on common failure modes
         if (msgLower.includes('api key') || msgLower.includes('403')) {
              throw new Error("Authentication Failed: Invalid API Key or access denied. Please check your configuration.");
         }
