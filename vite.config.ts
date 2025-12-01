@@ -1,26 +1,20 @@
-import { defineConfig, loadEnv } from 'vite';
-import react from '@vitejs/plugin-react';
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => {
-  // Load env file based on `mode` in the current working directory.
-  // Set the third parameter to '' to load all env regardless of the `VITE_` prefix.
-  const env = loadEnv(mode, '.', '');
-  
-  return {
-    plugins: [react()],
-    base: './', // Ensures assets load correctly on GitHub Pages
-    build: {
-      outDir: 'dist',
-      assetsDir: 'assets',
-    },
-    optimizeDeps: {
-      include: ['react', 'react-dom', 'react/jsx-runtime'],
-    },
-    define: {
-      // This is critical: We replace 'process.env.API_KEY' in your code
-      // with the actual string value from the build environment.
-      'process.env.API_KEY': JSON.stringify(env.API_KEY || process.env.API_KEY)
-    }
-  };
-});
+export default defineConfig({
+  plugins: [react()],
+  // Base URL for the app. '/' works best for Firebase Hosting root.
+  base: '/', 
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets',
+    sourcemap: false,
+    // Increase chunk size warning limit to prevent warnings from failing CI in strict modes
+    chunkSizeWarningLimit: 1000,
+  },
+  define: {
+    // Expose environment variables to the client, with a safe fallback to prevent build crashes
+    'process.env.API_KEY': JSON.stringify(process.env.API_KEY || '')
+  }
+})
